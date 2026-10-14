@@ -62,7 +62,7 @@ public final class LogParser {
             "\\[PlayerAction] Adding action \\(\\d+\\) Corporation action : (.+)$");
     private static final Pattern TO_PLAYER_BANK = Pattern.compile("to player (\\d+) bank");
     private static final Pattern DRAW_CARDS = Pattern.compile(
-            "\\[PlayerAction] Playing(?: action)? \\([\\d.]+\\) DrawCardPlayerAction");
+            "\\[PlayerAction] Playing(?: action)? \\([\\d.]+\\) Draw(?:AndSelect)?Cards?PlayerAction");
     private static final Pattern ADDING_HAND_CARD = Pattern.compile(
             "\\[PlayerAction] Adding action \\([\\d.]+\\) CardPlayerAction Card: (.+)$");
     private static final Pattern STAMP = Pattern.compile("^\\[([\\d.,]+)]");
