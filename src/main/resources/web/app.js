@@ -608,6 +608,7 @@ function bindBannerUi() {
     if ($("banner-toggle").disabled) return;
     if (ev.target.closest(".tip")) return;
     bannerOpen = !bannerOpen;
+    saveSections();
     applyBannerOpen();
   });
   $("game-log").addEventListener("click", (ev) => {
@@ -956,13 +957,8 @@ function renderGameLog(data) {
 function render(data) {
   if (data.gameId !== lastGameId) {
     lastGameId = data.gameId || "";
-    corpRulesOpen = false;
-    collapsedBoardIds = new Set();
-    collapsedCardSections = new Set();
     logFilter = null;
     selectedGen = null;
-    chartsOpen = false;
-    cardsOpen = false;
   }
   coloniesOn = !!data.colonies;
   lastStateData = data;
@@ -1433,24 +1429,46 @@ function loadChartMetric() {
   }
 }
 
+/** Open and closed sections from the last visit, so a reload or a new game keeps the page as you left it. */
+function loadSections() {
+  try {
+    return JSON.parse(localStorage.getItem("sections")) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSections() {
+  try {
+    localStorage.setItem("sections", JSON.stringify({
+      scoreOpen, cardsOpen, chartsOpen, bannerOpen, corpRulesOpen,
+      collapsedBoards: [...collapsedBoardIds],
+      collapsedCards: [...collapsedCardSections],
+    }));
+  } catch {
+    // Private windows can refuse storage; the sections still fold for this visit.
+  }
+}
+
+const savedSections = loadSections();
 let chartMetricId = loadChartMetric();
-let scoreOpen = false;
-let cardsOpen = false;
-let chartsOpen = false;
+let scoreOpen = savedSections.scoreOpen === true;
+let cardsOpen = savedSections.cardsOpen === true;
+let chartsOpen = savedSections.chartsOpen === true;
 let selectedGen = null;
 let lastScoreData = null;
 let lastScorePlayers = [];
 let scoreUiBound = false;
-// Closed until a card is in flight (which opens it) or the game log is opened by hand.
-let bannerOpen = false;
+// The game log under the banner; closed until opened by hand.
+let bannerOpen = savedSections.bannerOpen === true;
 let coloniesOn = false;
 let colonyOpen = loadColonyOpen();
 let lastStateData = null;
 let bannerUiBound = false;
-let corpRulesOpen = false;
-let collapsedBoardIds = new Set();
-/** Collapsed card sections (blue, green, red); each applies to every player's board. */
-let collapsedCardSections = new Set();
+let corpRulesOpen = savedSections.corpRulesOpen === true;
+let collapsedBoardIds = new Set(savedSections.collapsedBoards || []);
+/** Collapsed card sections (hand, blue, green, red); each applies to every player's board. */
+let collapsedCardSections = new Set(savedSections.collapsedCards || []);
 let corpUiBound = false;
 let lastGameId = "";
 
@@ -1522,6 +1540,7 @@ function bindCorpUi() {
       const open = collapsedCardSections.has(key);
       if (open) collapsedCardSections.delete(key);
       else collapsedCardSections.add(key);
+      saveSections();
       document.querySelectorAll(`.cards-toggle[data-cards="${key}"]`).forEach((btn) => {
         btn.setAttribute("aria-expanded", String(open));
         const cards = btn.closest(".cards-title")?.nextElementSibling;
@@ -1535,6 +1554,7 @@ function bindCorpUi() {
     if (info) {
       corpRulesOpen = !corpRulesOpen;
       if (corpRulesOpen) collapsedBoardIds.clear();
+      saveSections();
       applyBoardUi();
       return;
     }
@@ -1543,6 +1563,7 @@ function bindCorpUi() {
     const id = Number(toggle.dataset.corp);
     if (collapsedBoardIds.has(id)) collapsedBoardIds.delete(id);
     else collapsedBoardIds.add(id);
+    saveSections();
     applyBoardUi();
   });
 }
@@ -1556,6 +1577,7 @@ function bindScoreUi() {
       cardsOpen = false;
       chartsOpen = false;
     }
+    saveSections();
     $("score-details").hidden = !scoreOpen;
     $("score-cards").hidden = !cardsOpen;
     $("score-charts").hidden = !chartsOpen;
@@ -1566,11 +1588,13 @@ function bindScoreUi() {
     const row = ev.target.closest("tr[data-drill='cards']");
     if (!row) return;
     cardsOpen = !cardsOpen;
+    saveSections();
     $("score-cards").hidden = !cardsOpen;
     row.classList.toggle("open", cardsOpen);
   });
   $("score-chart-toggle").addEventListener("click", () => {
     chartsOpen = !chartsOpen;
+    saveSections();
     $("score-charts").hidden = !chartsOpen;
     $("score-chart-toggle").setAttribute("aria-expanded", chartsOpen ? "true" : "false");
   });
