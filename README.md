@@ -25,7 +25,7 @@ opponent's board.
 It works for games against the AI and against other people. Open it on a second monitor, or scan the QR
 code to follow along on your phone.
 
-It only rebuilds public information from the log. Nobody's hand is ever shown.
+Opponents' hands are never shown. The only hand you'll see is your own, on your board.
 
 ## Know the score before the game ends
 
@@ -57,6 +57,7 @@ The page scales down to a phone. Scan the QR code in the header to open it on an
 ## Also included
 
 - **Placement reminders:** a sticky note when the card you're playing leads to placing a tile (Capital, Research Outpost, Mohole and others)
+- **Your hand:** the cards you're holding, with their costs, on your own board
 - **Milestone progress:** how close you are to each milestone, from public information
 - **Colonies:** each colony tile's trade track, who has colonies there, and where trade fleets are parked
 - **Past games:** every game is saved, so you can reopen its boards, charts and log later
