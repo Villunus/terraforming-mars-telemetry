@@ -46,6 +46,8 @@ public final class PlayerState {
     public int fleetsUsed;
 
     public final Map<String, Integer> tags = new LinkedHashMap<>();
+    /** Cards in this player's hand, in the order they came in; only known for you. */
+    public final List<PlayedCard> hand = new ArrayList<>();
     public final List<PlayedCard> blueCards = new ArrayList<>();
     public final List<PlayedCard> greenCards = new ArrayList<>();
     public final List<PlayedCard> events = new ArrayList<>();

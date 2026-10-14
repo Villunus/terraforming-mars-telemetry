@@ -186,8 +186,9 @@ function renderCards(title, cards, cls, generation) {
     <div class="cards"${open ? "" : " hidden"}>${shown.map((c) => {
       const used = hasAction(c) && generation != null && c.actionUsedGen === generation;
       return `
-      <div class="card ${cls}${used ? " used" : ""}"${used ? ` title="Action already used this generation"` : ""}>
+      <div class="card ${cls === "hand" ? `hand ${escapeHtml(c.color || "")}` : cls}${used ? " used" : ""}"${used ? ` title="Action already used this generation"` : ""}>
         <div class="card-head">
+          ${cls === "hand" && c.cost != null ? costSym(c.cost) : ""}
           <h3>${c.name}</h3>
           <span class="card-head-tags">${(c.tags || []).map(tagIcon).join("")}</span>
           ${used ? `<span class="card-used">Used</span>` : ""}
@@ -362,6 +363,7 @@ function renderPlayer(p, generation) {
       ${renderTags(p.tags)}
       ${renderColonySection(p, lastStateData)}
       <p class="board-awards"></p>
+      <div class="board-hand">${renderCards("Hand", p.hand, "hand", generation)}</div>
       <div class="board-blues">${renderCards("Blue cards", p.blueCards, "blue", generation)}</div>
       <div class="board-rest">
         ${renderCards("Automated", p.greenCards, "green", generation)}

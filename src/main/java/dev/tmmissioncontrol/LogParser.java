@@ -65,6 +65,11 @@ public final class LogParser {
             "\\[PlayerAction] Playing(?: action)? \\([\\d.]+\\) Draw(?:AndSelect)?Cards?PlayerAction");
     private static final Pattern ADDING_HAND_CARD = Pattern.compile(
             "\\[PlayerAction] Adding action \\([\\d.]+\\) CardPlayerAction Card: (.+)$");
+    /** Closes an "Adding action ... CardPlayerAction" block: that card went to this player's hand. */
+    private static final Pattern TO_HAND = Pattern.compile("^ to player (\\d+) bank in AvailableActions");
+    /** Game action types whose event dumps list cards leaving the hand by number. */
+    private static final int SELL_CARDS = 12;
+    private static final int DISCARD_FROM_HAND = 26;
     private static final Pattern STAMP = Pattern.compile("^\\[([\\d.,]+)]");
     /** Start of a game-action dump; colony builds and trades are only described inside these. */
     private static final Pattern EVENT_START = Pattern.compile(
@@ -97,6 +102,8 @@ public final class LogParser {
     private String lastBlueAction = "";
     private boolean collectDraws;
     private String pendingHandCard = "";
+    /** The card in the "Adding action" block being read, until its "to player N bank" line says whose hand. */
+    private String handCandidate = "";
     private String lastLogKey = "";
     /** When the game client launched (epoch millis), learned from a chat clock line; the log itself has no dates. */
     long launchEpochMs = -1;
@@ -166,6 +173,7 @@ public final class LogParser {
                 lastBlueAction = "";
                 collectDraws = false;
                 pendingHandCard = "";
+                handCandidate = "";
                 lastLogKey = "";
                 steamCorps.clear();
                 pendingEvent = null;
@@ -362,8 +370,19 @@ public final class LogParser {
                 beginDrawCollect();
             }
             m = ADDING_HAND_CARD.matcher(line);
-            if (m.find() && collectDraws) {
+            boolean addingHandCard = m.find();
+            if (addingHandCard && collectDraws) {
                 pendingHandCard = m.group(1).trim();
+            }
+            if (addingHandCard) {
+                handCandidate = m.group(1).trim();
+            } else if (line.startsWith("[")) {
+                handCandidate = "";
+            }
+            m = TO_HAND.matcher(line);
+            if (m.find() && !handCandidate.isBlank()) {
+                addToHand(state.player(Integer.parseInt(m.group(1))), handCandidate);
+                handCandidate = "";
             }
             if (line.contains("finished handling event of type:")) {
                 collectDraws = false;
@@ -879,19 +898,20 @@ public final class LogParser {
         }
     }
 
-    private void playCard(int playerId, String rawName) {
-        String key = playerId + "|" + CardDatabase.normalize(rawName);
-        if (key.equals(lastCardKey)) {
+    /** Only your own hand is kept; the log lists it card by card as cards come in. */
+    private void addToHand(PlayerState player, String rawName) {
+        String name = cards.displayName(rawName);
+        if (!player.human || player.hand.stream().anyMatch(c -> c.name.equals(name))) {
             return;
         }
-        lastCardKey = key;
-        lastBlueAction = "";
+        player.hand.add(cardFor(rawName));
+    }
+
+    /** A card from the catalog as the page shows it: on the table, or still in hand. */
+    private PlayedCard cardFor(String rawName) {
         Card card = cards.find(rawName);
-        String name = cards.displayName(rawName);
-        PlayerState player = state.player(playerId);
         PlayedCard played = new PlayedCard();
-        played.name = name;
-        played.generation = state.generation;
+        played.name = cards.displayName(rawName);
         if (card != null) {
             played.color = card.color;
             played.colorLabel = card.colorLabel();
@@ -916,6 +936,21 @@ public final class LogParser {
             played.blue = false;
             played.project = true;
         }
+        return played;
+    }
+
+    private void playCard(int playerId, String rawName) {
+        String key = playerId + "|" + CardDatabase.normalize(rawName);
+        if (key.equals(lastCardKey)) {
+            return;
+        }
+        lastCardKey = key;
+        lastBlueAction = "";
+        String name = cards.displayName(rawName);
+        PlayerState player = state.player(playerId);
+        PlayedCard played = cardFor(rawName);
+        played.generation = state.generation;
+        player.hand.removeIf(c -> c.name.equals(name));
         player.addCard(played);
         state.addLog(playerId, "card", name, played.color);
         int vp = ScoreCalculator.cardVp(played, player, citiesInPlay());
@@ -1357,6 +1392,11 @@ public final class LogParser {
 
     /** A colony build (ActionType 43) or trade (45): record it, log it and show it in the banner. */
     private void finishEvent(ActionEvent e) {
+        if (e.actionType == SELL_CARDS || e.actionType == DISCARD_FROM_HAND) {
+            List<Integer> gone = e.actionType == SELL_CARDS ? e.cards : e.chosenCards;
+            state.player(e.playerId).hand.removeIf(c -> gone.contains(c.number));
+            return;
+        }
         if (e.actionType != 43 && e.actionType != 45) {
             return;
         }
@@ -1441,13 +1481,33 @@ public final class LogParser {
         String time = "";
         int chosen = -1;
         int quantity = -1;
+        /** The top-level Cards and ChosenCards lists, as card numbers. */
+        final List<Integer> cards = new ArrayList<>();
+        final List<Integer> chosenCards = new ArrayList<>();
+        private List<Integer> listing;
         final List<Sub> subs = new ArrayList<>();
 
         ActionEvent(int playerId) {
             this.playerId = playerId;
         }
 
+        private void addCardNumber(String text) {
+            int number = intOr(text.trim(), -1);
+            if (number > 0) {
+                listing.add(number);
+            }
+        }
+
         void feed(String line) {
+            // "\tCards(2):\t\t184" then "\t\t\t\t41" for each further card.
+            if (line.startsWith("\tCards(") || line.startsWith("\tChosenCards(")) {
+                listing = line.startsWith("\tCards(") ? cards : chosenCards;
+                addCardNumber(line.substring(line.indexOf(':') + 1));
+            } else if (listing != null && line.startsWith("\t\t\t\t") && !line.startsWith("\t\t\t\t\t")) {
+                addCardNumber(line);
+            } else {
+                listing = null;
+            }
             if (line.startsWith("\tChosenCards(1):")) {
                 chosen = intOr(line.substring(line.indexOf(':') + 1), -1);
                 return;

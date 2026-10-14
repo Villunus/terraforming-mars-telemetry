@@ -773,6 +773,7 @@ table.cubes td.prod.na { color: var(--muted); opacity: 0.6; }
 .card h3 { margin: 0; font-size: 1rem; flex: 1 1 auto; min-width: 0; }
 .card-head-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; flex: 0 1 auto; }
 .card.used { opacity: 0.45; }
+.card-head > .cost-sym { flex: 0 0 auto; min-width: 1.7rem; height: 1.5rem; font-size: 0.75rem; }
 .card-used {
   flex: 0 0 auto;
   padding: 1px 7px;
