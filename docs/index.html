@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Terraforming Mars Telemetry</title>
+  <meta name="description" content="A free, live second-screen dashboard for the Terraforming Mars digital edition. Every player's board, a running score with charts, and tile-placement reminders.">
+  <link rel="icon" href="logo.png">
+  <meta property="og:title" content="Terraforming Mars Telemetry">
+  <meta property="og:description" content="A free, live second-screen dashboard for the Terraforming Mars digital edition.">
+  <meta property="og:image" content="https://deccles.github.io/terraforming-mars-telemetry/screenshots/overview.png">
+  <meta property="og:type" content="website">
+  <style>
+    :root {
+      --bg: #140c0a;
+      --bg-2: #1b100d;
+      --panel: #231614;
+      --ink: #f4e6d4;
+      --muted: #b89f88;
+      --accent: #e07a3d;
+      --accent-ink: #1a0d08;
+      --blue: #6ea8d4;
+      --green: #7dae6a;
+      --line: #3c2a24;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 17px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    img { max-width: 100%; height: auto; display: block; }
+    a { color: var(--accent); }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    /* Header */
+    header.nav { position: sticky; top: 0; z-index: 10; background: rgba(20, 12, 10, 0.88); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+    header.nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; }
+    .brand img { width: 36px; height: 36px; }
+    .brand span { display: flex; flex-direction: column; line-height: 1.05; }
+    .brand small { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .brand b { font-size: 1.05rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+    nav.links { display: flex; gap: 22px; font-size: 0.95rem; }
+    nav.links a { color: var(--muted); text-decoration: none; }
+    nav.links a:hover { color: var(--ink); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 26px; border-radius: 10px;
+      font-weight: 600; font-size: 1.05rem; text-decoration: none;
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover { background: #ec8a4e; }
+    .btn-ghost { color: var(--ink); border: 1px solid var(--line); background: var(--panel); }
+    .btn-ghost:hover { border-color: var(--muted); }
+    .btn svg { width: 20px; height: 20px; }
+
+    /* Hero */
+    .hero {
+      text-align: center; padding: 80px 0 40px;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(224, 122, 61, 0.22), transparent 70%);
+    }
+    .eyebrow { color: var(--accent); font-size: 0.8rem; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; margin: 0 0 14px; }
+    .hero h1 { font-size: clamp(2.1rem, 5.2vw, 3.6rem); line-height: 1.1; margin: 0 auto 18px; max-width: 16ch; font-weight: 700; letter-spacing: -0.01em; }
+    .hero p.lead { font-size: clamp(1.05rem, 2vw, 1.25rem); color: var(--muted); max-width: 46ch; margin: 0 auto 32px; }
+    .cta { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; }
+    .fine { color: var(--muted); font-size: 0.88rem; margin-top: 16px; }
+    .hero-shot { margin: 56px auto 0; max-width: 1040px; }
+    .shot { border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(224, 122, 61, 0.08); overflow: hidden; }
+
+    /* Sections */
+    section { padding: 88px 0; }
+    section.alt { background: var(--bg-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    h2 { font-size: clamp(1.7rem, 3.5vw, 2.4rem); line-height: 1.15; margin: 0 0 14px; letter-spacing: -0.01em; }
+    .section-head { text-align: center; max-width: 640px; margin: 0 auto 48px; }
+    .section-head p { color: var(--muted); margin: 0; }
+
+    /* Feature rows */
+    .feature { display: grid; grid-template-columns: 5fr 7fr; gap: 56px; align-items: center; }
+    .feature + .feature { margin-top: 96px; }
+    .feature.flip { grid-template-columns: 7fr 5fr; }
+    .feature.flip .copy { order: 2; }
+    .feature .copy p { color: var(--muted); margin: 0 0 14px; }
+    .feature .copy ul { margin: 0; padding-left: 20px; color: var(--muted); }
+    .feature .copy li { margin: 4px 0; }
+    .feature .copy li::marker { color: var(--accent); }
+    .feature.phone { grid-template-columns: 7fr 5fr; }
+    .phone-frame { max-width: 300px; margin: 0 auto; border-radius: 34px; padding: 10px; background: #0b0605; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); }
+    .phone-frame img { border-radius: 26px; }
+
+    /* Extras grid */
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+    .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    .card .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: middle; }
+
+    /* Steps */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: step; }
+    .step { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px 24px; position: relative; }
+    .step::before {
+      counter-increment: step; content: counter(step);
+      display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+      background: var(--accent); color: var(--accent-ink); font-weight: 700; margin-bottom: 16px;
+    }
+    .step h3 { margin: 0 0 8px; font-size: 1.15rem; }
+    .step p { margin: 0 0 10px; color: var(--muted); font-size: 0.97rem; }
+    .step p:last-child { margin-bottom: 0; }
+    .note { border-left: 3px solid var(--accent); background: rgba(224, 122, 61, 0.08); padding: 10px 12px; border-radius: 0 8px 8px 0; font-size: 0.92rem; color: var(--ink); }
+    kbd { font: inherit; font-weight: 600; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; white-space: nowrap; }
+    .get-cta { text-align: center; margin-top: 40px; }
+
+    /* FAQ */
+    .faq { max-width: 760px; margin: 0 auto; }
+    details { border-bottom: 1px solid var(--line); }
+    details:first-child { border-top: 1px solid var(--line); }
+    summary { cursor: pointer; list-style: none; padding: 20px 36px 20px 0; font-weight: 600; font-size: 1.05rem; position: relative; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); color: var(--accent); font-size: 1.5rem; font-weight: 400; }
+    details[open] summary::after { content: "\2212"; }
+    details p { margin: 0 0 20px; color: var(--muted); }
+    code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 0.88em; background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; word-break: break-all; }
+
+    /* Footer */
+    footer { padding: 48px 0 56px; color: var(--muted); font-size: 0.88rem; text-align: center; }
+    footer .links { display: flex; justify-content: center; flex-wrap: wrap; gap: 22px; margin-bottom: 16px; }
+    footer .links a { color: var(--ink); text-decoration: none; }
+    footer p { max-width: 640px; margin: 0 auto; }
+
+    @media (max-width: 860px) {
+      nav.links a.hide-sm { display: none; }
+      .feature, .feature.flip, .feature.phone { grid-template-columns: 1fr; gap: 28px; }
+      .feature.flip .copy { order: 0; }
+      .feature + .feature { margin-top: 72px; }
+      .grid, .steps { grid-template-columns: 1fr; }
+      section { padding: 64px 0; }
+      .hero { padding-top: 56px; }
+    }
+    @media (max-width: 480px) {
+      .wrap { padding: 0 16px; }
+      nav.links { gap: 14px; }
+      .btn { width: 100%; justify-content: center; }
+      .brand small { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <img src="logo.png" alt="">
+      <span><small>Terraforming Mars</small><b>Telemetry</b></span>
+    </a>
+    <nav class="links">
+      <a class="hide-sm" href="#features">Features</a>
+      <a href="#get-started">Get started</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Free for Terraforming Mars players</p>
+      <h1>The whole table, on your second screen.</h1>
+      <p class="lead">A live dashboard for the Terraforming Mars digital edition. See every player's board, the score as it moves, and what your opponent is building toward, without clicking through menus.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/deccles/terraforming-mars-telemetry/releases/download/latest/TerraformingMarsTelemetry-Setup.msi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Download for Windows
+        </a>
+        <a class="btn btn-ghost" href="#get-started">How it works</a>
+      </div>
+      <p class="fine">Free &middot; Windows installer &middot; No account, no sign-up</p>
+      <div class="hero-shot shot">
+        <img src="screenshots/overview.png" width="2560" height="1800" alt="The dashboard showing two players' resources and production, claimed milestones, funded awards and the running VP total">
+      </div>
+    </div>
+  </div>
+
+  <section id="features" class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">What you get</p>
+        <h2>Everything on the table, as it happens</h2>
+        <p>While you play, Telemetry reads the game's own log on your PC and turns it into a live dashboard. It updates as soon as a card is played.</p>
+      </div>
+
+      <div class="feature">
+        <div class="copy">
+          <h2>Know the score before the game ends</h2>
+          <p>See what each player would score if the game ended right now: TR, milestones, awards, greeneries, cities and card points.</p>
+          <ul>
+            <li>Charts of score, production and resources by generation</li>
+            <li>Tap a generation to see what changed</li>
+            <li>Spot the moment the game turned</li>
+          </ul>
+        </div>
+        <div class="shot"><img src="screenshots/scoreboard.png" width="2528" height="1980" loading="lazy" alt="Score breakdown table and a VP-per-generation chart for two players"></div>
+      </div>
+
+      <div class="feature flip">
+        <div class="copy">
+          <h2>Every board, side by side</h2>
+          <p>Tags, blue cards with their actions and resources, automated cards and events for every player. Know what your opponent is going for before they get there.</p>
+          <ul>
+            <li>Resources and production for everyone</li>
+            <li>Milestone progress, worked out from public information</li>
+            <li>Colonies, trade tracks and parked fleets</li>
+          </ul>
+        </div>
+        <div class="shot"><img src="screenshots/boards.png" width="2528" height="1848" loading="lazy" alt="Tags and blue cards for two players side by side"></div>
+      </div>
+
+      <div class="feature phone">
+        <div class="copy">
+          <h2>Follow along on your phone</h2>
+          <p>Only one screen? Scan the QR code in the dashboard's header and it opens on any phone or tablet on your Wi-Fi. The layout is built to fit a phone.</p>
+          <p>Prop it up next to the keyboard and keep the game full-screen.</p>
+        </div>
+        <div class="phone-frame"><img src="screenshots/phone.png" width="780" height="1688" loading="lazy" alt="The dashboard on a phone-sized screen"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Also included</p>
+        <h2>The little things that help</h2>
+      </div>
+      <div class="grid">
+        <div class="card"><h3><span class="dot"></span>Placement reminders</h3><p>A sticky note when the card you're playing places a tile, like Capital, Research Outpost or Mohole, with tips on where it can go.</p></div>
+        <div class="card"><h3><span class="dot"></span>Your hand, on your board</h3><p>The cards you're holding, with their costs. Opponents' hands are never shown.</p></div>
+        <div class="card"><h3><span class="dot"></span>Past games</h3><p>Every game is saved. Reopen its boards, charts and log any time.</p></div>
+        <div class="card"><h3><span class="dot"></span>Against AI or people</h3><p>Works for games against the AI and against other players.</p></div>
+        <div class="card"><h3><span class="dot"></span>Automatic updates</h3><p>The app tells you when a new version is ready to install.</p></div>
+        <div class="card"><h3><span class="dot"></span>Stays on your PC</h3><p>It reads a log file on your computer. Nothing is uploaded and there's no account.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="get-started" class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Get started</p>
+        <h2>Up and running in three steps</h2>
+        <p>You'll need Windows and the Terraforming Mars digital edition. The installer includes everything else, Java too.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <h3>Install it</h3>
+          <p>Download <a href="https://github.com/deccles/terraforming-mars-telemetry/releases/download/latest/TerraformingMarsTelemetry-Setup.msi">TerraformingMarsTelemetry-Setup.msi</a> and run it.</p>
+          <p class="note">Windows may show <b>"Windows protected your PC"</b> because this is a small free app without a paid certificate. Click <kbd>More info</kbd> then <kbd>Run anyway</kbd>.</p>
+        </div>
+        <div class="step">
+          <h3>Start Telemetry, then play</h3>
+          <p>Open <b>Terraforming Mars Telemetry</b> from the Start menu or desktop shortcut. A browser tab opens with the dashboard.</p>
+          <p>Start a game of Terraforming Mars. The dashboard fills in as you play. Drag that tab onto your second monitor.</p>
+        </div>
+        <div class="step">
+          <h3>Add your phone (optional)</h3>
+          <p>The first time you start it, Telemetry asks to let phones on your Wi-Fi connect. Click <kbd>Allow</kbd>, then approve the administrator prompt.</p>
+          <p>Scan the QR code in the dashboard's header with your phone's camera.</p>
+          <p class="note">Clicked <b>Not now</b>? Use the <kbd>Allow phones</kbd> button on the dashboard any time.</p>
+        </div>
+      </div>
+      <div class="get-cta">
+        <a class="btn btn-primary" href="https://github.com/deccles/terraforming-mars-telemetry/releases/download/latest/TerraformingMarsTelemetry-Setup.msi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Download for Windows
+        </a>
+        <p class="fine">Want an older version? See <a href="https://github.com/deccles/terraforming-mars-telemetry/releases">all releases</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">FAQ</p>
+        <h2>Questions</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Is this cheating? Can I see my opponent's cards?</summary>
+          <p>No. Opponents' hands are never shown. Everything on the dashboard is something you could find in the game by clicking around: boards, tags, played cards, milestones and awards. Telemetry puts it all on one screen.</p>
+        </details>
+        <details>
+          <summary>Does it work in multiplayer?</summary>
+          <p>Yes. It works in games against the AI and against other people.</p>
+        </details>
+        <details>
+          <summary>How does it work?</summary>
+          <p>The digital edition writes a log of every move to a file on your PC. Telemetry reads that file as it changes and shows it in your browser. It doesn't touch the game itself.</p>
+        </details>
+        <details>
+          <summary>Does it cost anything or send my data anywhere?</summary>
+          <p>It's free. It runs on your own PC and doesn't upload your games or need an account. The only thing it checks online is whether a new version is available.</p>
+        </details>
+        <details>
+          <summary>The dashboard is empty. What now?</summary>
+          <p>Make sure you're playing the PC digital edition and that a game has started. Telemetry reads the log at <code>%USERPROFILE%\AppData\LocalLow\LuckyHammers\Terraforming Mars\Player.log</code>. If yours is somewhere else, <a href="https://github.com/deccles/terraforming-mars-telemetry/issues">open an issue</a> and let me know.</p>
+        </details>
+        <details>
+          <summary>My phone can't connect.</summary>
+          <p>Your phone needs to be on the same Wi-Fi as your PC. If Windows Firewall is blocking it, click <kbd>Allow phones</kbd> on the dashboard and approve the administrator prompt. Then scan the QR code again.</p>
+        </details>
+        <details>
+          <summary>Is it on Mac or Linux?</summary>
+          <p>Not yet. The installer is for Windows only.</p>
+        </details>
+        <details>
+          <summary>I found a bug or have an idea.</summary>
+          <p>Great! Please <a href="https://github.com/deccles/terraforming-mars-telemetry/issues">open an issue on GitHub</a>.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="links">
+      <a href="https://github.com/deccles/terraforming-mars-telemetry">Source on GitHub</a>
+      <a href="https://github.com/deccles/terraforming-mars-telemetry/releases">Releases</a>
+      <a href="https://github.com/deccles/terraforming-mars-telemetry/issues">Report a bug</a>
+    </div>
+    <p>An unofficial fan tool. Not affiliated with or endorsed by FryxGames, Asmodee, or the makers of the Terraforming Mars digital edition.</p>
+  </div>
+</footer>
+
+</body>
+</html>
