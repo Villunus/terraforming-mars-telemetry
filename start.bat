@@ -6,7 +6,7 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-if not exist "target\terraforming-mars-telemetry-1.0.20.jar" (
+if not exist "target\terraforming-mars-telemetry-1.0.21.jar" (
   echo Building Terraforming Mars Telemetry...
   call mvn -q package
   if errorlevel 1 (
@@ -15,4 +15,4 @@ if not exist "target\terraforming-mars-telemetry-1.0.20.jar" (
     exit /b 1
   )
 )
-java -jar "target\terraforming-mars-telemetry-1.0.20.jar" %*
+java -jar "target\terraforming-mars-telemetry-1.0.21.jar" %*
