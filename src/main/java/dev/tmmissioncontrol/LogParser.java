@@ -46,7 +46,7 @@ public final class LogParser {
     private static final Pattern CORP_ACTION = Pattern.compile(
             "Playing(?: action)? \\((\\d+(?:\\.\\d+)*)\\) Corporation action : (.+)$");
     private static final Pattern PLACE_TILE_ACTION = Pattern.compile(
-            "Playing action \\(([\\d.]+)\\) Place(Ocean|City|Greenery|Generic)TilePlayerAction");
+            "Playing action \\(([\\d.]+)\\) Place(\\w+?)TilePlayerAction");
     private static final Pattern CONVERSION = Pattern.compile(
             "Playing(?: action)? \\(([\\d.]+)\\) (?:Last)?(Plant|Heat)ConversionPlayerAction");
     private static final Pattern CARD_TOKEN = Pattern.compile(
@@ -401,7 +401,11 @@ public final class LogParser {
             }
             m = PLACE_TILE_ACTION.matcher(line);
             if (m.find()) {
-                pinPlacement(m.group(2));
+                // Cards with their own tile (Mining Area, Mohole Area...) have their own action; call them special.
+                // Flooding has its own action too, but places an ocean.
+                String kind = m.group(2);
+                pinPlacement("Flooding".equals(kind) ? "Ocean"
+                        : kind.matches("Ocean|City|Greenery|Generic") ? kind : "Special " + kind);
             }
 
             m = ASKING_PLAYER.matcher(line);
