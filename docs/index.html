@@ -38,7 +38,9 @@
     /* Header */
     header.nav { position: sticky; top: 0; z-index: 10; background: rgba(20, 12, 10, 0.88); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
     header.nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
-    .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; transition: opacity 0.2s ease; }
+    /* The hero already shows the logo; the bar's copy appears once the hero's has scrolled away. */
+    .brand.away { opacity: 0; pointer-events: none; }
     .brand img { width: 36px; height: 36px; }
     .brand span { display: flex; flex-direction: column; line-height: 1.05; }
     .brand small { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
@@ -67,8 +69,15 @@
       background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(224, 122, 61, 0.22), transparent 70%);
     }
     .eyebrow { color: var(--accent); font-size: 0.8rem; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; margin: 0 0 14px; }
-    .hero h1 { font-size: clamp(2.1rem, 5.2vw, 3.6rem); line-height: 1.1; margin: 0 auto 18px; max-width: 16ch; font-weight: 700; letter-spacing: -0.01em; }
-    .hero p.lead { font-size: clamp(1.05rem, 2vw, 1.25rem); color: var(--muted); max-width: 46ch; margin: 0 auto 32px; }
+    /* Logo mark, then a two-line wordmark whose lines are the same width (fitWordmark below), as in the app. */
+    .lockup { display: inline-flex; align-items: center; gap: 22px; margin: 0 0 26px; font-weight: 600; line-height: 1; }
+    .lockup img { width: 112px; height: 112px; flex: 0 0 auto; }
+    .lockup-text { display: inline-flex; flex-direction: column; align-items: flex-start; width: fit-content; text-align: left; }
+    .lockup-game { font-size: 1rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+    .lockup-app { margin-top: 6px; font-size: 2.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); white-space: nowrap; }
+    .lockup-signal { display: block; align-self: stretch; width: 100%; height: 14px; margin-top: 8px; overflow: visible; }
+    .lockup-signal polyline { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+    .hero p.lead { font-size: clamp(1.05rem, 2vw, 1.2rem); color: var(--muted); max-width: 48ch; margin: 0 auto 32px; }
     .cta { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; }
     .fine { color: var(--muted); font-size: 0.88rem; margin-top: 16px; }
     .hero-shot { margin: 56px auto 0; max-width: 1040px; }
@@ -144,6 +153,11 @@
     }
     @media (max-width: 480px) {
       .wrap { padding: 0 16px; }
+      .lockup { gap: 14px; }
+      .lockup img { width: 72px; height: 72px; }
+      .lockup-game { font-size: 0.72rem; }
+      .lockup-app { font-size: 1.75rem; margin-top: 4px; }
+      .lockup-signal { height: 10px; margin-top: 5px; }
       nav.links { gap: 14px; }
       .btn { width: 100%; justify-content: center; }
       .brand small { display: none; }
@@ -169,9 +183,17 @@
 <main id="top">
   <div class="hero">
     <div class="wrap">
-      <p class="eyebrow">Free for Terraforming Mars players</p>
-      <h1>The whole table, on your second screen.</h1>
-      <p class="lead">A live dashboard for the Terraforming Mars digital edition. See every player's board, the score as it moves, and what your opponent is building toward, without clicking through menus.</p>
+      <h1 class="lockup" aria-label="Terraforming Mars Telemetry">
+        <img src="logo-256.png" alt="" width="256" height="256">
+        <span class="lockup-text" aria-hidden="true">
+          <span class="lockup-game">Terraforming Mars</span>
+          <span class="lockup-app">Telemetry</span>
+          <svg class="lockup-signal" viewBox="0 0 160 10" preserveAspectRatio="none">
+            <polyline points="0,6 40,6 48,6 52,1 56,9 60,3 64,6 100,6 106,6 109,2 112,8 115,6 160,6"/>
+          </svg>
+        </span>
+      </h1>
+      <p class="lead">A live second-screen dashboard for the Terraforming Mars digital edition. Every player's board, the running score and tile-placement reminders, updated as you play.</p>
       <div class="cta">
         <a class="btn btn-primary" href="https://github.com/deccles/terraforming-mars-telemetry/releases/download/latest/TerraformingMarsTelemetry-Setup.msi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -338,5 +360,28 @@
   </div>
 </footer>
 
+<script>
+  // Stretch the shorter wordmark line so both lines are the same width (same as fitWordmark in the app).
+  function fitWordmark() {
+    const lines = [...document.querySelectorAll(".lockup-game, .lockup-app")];
+    lines.forEach((el) => { el.style.letterSpacing = ""; el.style.marginRight = ""; });
+    const spacing = (el) => parseFloat(getComputedStyle(el).letterSpacing) || 0;
+    const visible = (el) => el.getBoundingClientRect().width - spacing(el);
+    const target = Math.max(...lines.map(visible));
+    for (const el of lines) {
+      const ls = spacing(el) + (target - visible(el)) / (el.textContent.length - 1);
+      el.style.letterSpacing = `${ls}px`;
+      el.style.marginRight = `${-ls}px`;
+    }
+  }
+  document.fonts.ready.then(fitWordmark);
+  addEventListener("resize", fitWordmark);
+
+  const brand = document.querySelector(".brand");
+  const lockup = document.querySelector(".lockup");
+  const syncBrand = () => brand.classList.toggle("away", lockup.getBoundingClientRect().bottom > 64);
+  addEventListener("scroll", syncBrand, { passive: true });
+  syncBrand();
+</script>
 </body>
 </html>
