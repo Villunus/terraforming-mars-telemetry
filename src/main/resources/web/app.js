@@ -72,6 +72,31 @@ const TILE_ICONS = {
   greenery: { fill: "#2e8c3a", glyph: '<path fill="#e6f5d8" d="M12 6.5 8 13h2.6L8.6 16H11v2h2v-2h2.4l-2-3H16z"/>' },
   ocean: { fill: "#2876c8", glyph: '<path fill="none" stroke="#e3f1ff" stroke-width="1.5" stroke-linecap="round" d="M7.5 10.5q1.1-1.2 2.25 0t2.25 0 2.25 0 2.25 0M7.5 14q1.1-1.2 2.25 0t2.25 0 2.25 0 2.25 0"/>' },
   special: { fill: "#8a5a34", glyph: '<path fill="#f3e2cf" d="m12 7.5 1.3 2.8 3 .3-2.3 2 .7 3-2.7-1.6-2.7 1.6.7-3-2.3-2 3-.3z"/>' },
+  // Special tiles, for the placing badge.
+  mine: { fill: "#8a5a34", glyph: '<g fill="none" stroke="#f3e2cf" stroke-linecap="round"><path stroke-width="1.7" d="M7.8 17.2 14.2 10.4"/><path stroke-width="2" d="M11.2 6.7Q16.7 6.9 17 12.5"/></g>' },
+  mohole: { fill: "#6b3a24", glyph: '<ellipse cx="12" cy="14" rx="5" ry="2.6" fill="#1a0b05" stroke="#ff8a3d" stroke-width="1"/><path fill="none" stroke="#ffb36b" stroke-width="1.2" stroke-linecap="round" d="M10 10.5q-.8-1.2 0-2.4M12 10q-.8-1.2 0-2.4M14 10.5q-.8-1.2 0-2.4"/>' },
+  preserve: { fill: "#2e6b34", glyph: '<circle cx="12" cy="12.3" r="5.6" fill="none" stroke="#e6f5d8" stroke-width="1.1"/><path fill="#e6f5d8" d="M12 8 9.3 12.3H11l-1.3 2h1.5v1.4h1.6v-1.4h1.5l-1.3-2h1.7z"/>' },
+  eco: { fill: "#2e8c3a", glyph: '<g fill="#e6f5d8"><ellipse cx="12" cy="14.6" rx="3" ry="2.4"/><ellipse cx="8.6" cy="11.4" rx="1.1" ry="1.5"/><ellipse cx="10.8" cy="9.2" rx="1.1" ry="1.5"/><ellipse cx="13.2" cy="9.2" rx="1.1" ry="1.5"/><ellipse cx="15.4" cy="11.4" rx="1.1" ry="1.5"/></g>' },
+  nuclear: { fill: "#d9b52a", glyph: '<g fill="#1a1208"><circle cx="12" cy="12.5" r="1.1"/><path d="M11.10 10.94L9.50 8.17A5 5 0 0 1 14.50 8.17L12.90 10.94A1.8 1.8 0 0 0 11.10 10.94ZM13.80 12.50L17.00 12.50A5 5 0 0 1 14.50 16.83L12.90 14.06A1.8 1.8 0 0 0 13.80 12.50ZM11.10 14.06L9.50 16.83A5 5 0 0 1 7.00 12.50L10.20 12.50A1.8 1.8 0 0 0 11.10 14.06Z"/></g>' },
+  lava: { fill: "#8a2a14", glyph: '<path fill="#3a1a10" d="M6.5 17.5 10 10h4l3.5 7.5z"/><path fill="#ffb02e" d="M10 10h4l-.6 1.4-.9-.6-.6 2.4-.7-1.9-.6.9z"/><path fill="none" stroke="#ff7a2e" stroke-width="1" stroke-linecap="round" d="M11 8.5 10.3 6.8M12 8.3V6.3M13 8.5l.7-1.7"/>' },
+  industry: { fill: "#5d6670", glyph: '<path fill="#e8eaed" d="M6.5 17v-5l3.2-2v2l3.2-2v2l3.1-2V7h1.5v10z"/>' },
+  restricted: { fill: "#8b1e1e", glyph: '<circle cx="12" cy="12.3" r="5" fill="#f4e6e6"/><rect x="8.8" y="11.3" width="6.4" height="2" fill="#8b1e1e"/>' },
+  commercial: { fill: "#c99a2e", glyph: '<circle cx="12" cy="12.3" r="5" fill="#f3d36b" stroke="#6b4a10" stroke-width=".8"/><text x="12" y="14.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="5.2" font-weight="700" fill="#3a2a08">M€</text>' },
+};
+
+/** The special tile each card places, keyed by lowercase card name. */
+const SPECIAL_TILE_KIND = {
+  capital: "city", // a city, placed through the generic tile action
+  "mining area": "mine",
+  "mining rights": "mine",
+  "mohole area": "mohole",
+  "natural preserve": "preserve",
+  "ecological zone": "eco",
+  "nuclear zone": "nuclear",
+  "lava flows": "lava",
+  "industrial center": "industry",
+  "restricted area": "restricted",
+  "commercial district": "commercial",
 };
 
 function tileIcon(kind) {
@@ -440,6 +465,16 @@ function placingLabel(raw) {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** What the placing badge shows: a tile icon and a name, using the card's own tile when it has one. */
+function placingBadge(play) {
+  const label = placingLabel(play && play.placing);
+  if (!label) return null;
+  if (label === "Ocean" || label === "Greenery" || label === "City") return { kind: label.toLowerCase(), label };
+  const card = String(play.cardName || "").replace(/^(Placing|Using) /, "").trim();
+  const kind = SPECIAL_TILE_KIND[card.toLowerCase()];
+  return kind ? { kind, label: card } : { kind: "special", label };
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;",
@@ -685,11 +720,11 @@ function renderBanner(data) {
   const log = data.log || [];
   let tips = [];
   let warnings = [];
-  const placing = placingLabel(play && play.placing);
+  const placing = placingBadge(play);
   const placingEl = $("banner-placing");
   if (placing) {
     placingEl.hidden = false;
-    placingEl.textContent = "Placing " + placing;
+    placingEl.innerHTML = `${tileIcon(placing.kind)}<span>Placing ${escapeHtml(placing.label)}</span>`;
   } else {
     placingEl.hidden = true;
     placingEl.textContent = "";

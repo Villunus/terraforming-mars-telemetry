@@ -1224,6 +1224,9 @@ public final class LogParser {
     private void onPlace(String type, int hex) {
         PlayerState player = state.player(currentPlayer);
         String kind = type.toLowerCase().replace(" ", "").replace("_", "");
+        if ("flooding".equals(kind)) {
+            kind = "ocean"; // Flooding's tile is an ocean: it counts, scores and pays like one
+        }
         String cardName = state.activePlay == null ? "" : state.activePlay.cardName;
         if (kind.contains("city") || "capital".equals(kind)) {
             player.cities++;
