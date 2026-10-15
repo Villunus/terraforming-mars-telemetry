@@ -37,7 +37,7 @@ each generation. Tap a generation to see what changed.
   <img src="docs/screenshots/scoreboard.png" alt="Score breakdown table and a VP-per-generation chart for two players" width="900">
 </p>
 
-## Every board, side by side
+## Every player's board in one place
 
 Tags, blue cards with their actions and resources, automated cards and events for every player, so you can
 see what your opponent is building toward.
