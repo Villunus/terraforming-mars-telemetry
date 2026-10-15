@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-if not exist "target\terraforming-mars-telemetry-1.0.23.jar" (
+if not exist "target\terraforming-mars-telemetry-1.0.24.jar" (
   echo Building Terraforming Mars Telemetry...
   mvn -q package -DskipTests
   if errorlevel 1 (
@@ -10,4 +10,4 @@ if not exist "target\terraforming-mars-telemetry-1.0.23.jar" (
     exit /b 1
   )
 )
-java -jar "%~dp0target\terraforming-mars-telemetry-1.0.23.jar" %*
+java -jar "%~dp0target\terraforming-mars-telemetry-1.0.24.jar" %*
