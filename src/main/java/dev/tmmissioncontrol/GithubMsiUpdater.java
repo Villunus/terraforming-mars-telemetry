@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Dialogs appear only when an installable newer version exists.
  */
 public final class GithubMsiUpdater {
-    private static final String OWNER = "deccles";
+    private static final String OWNER = "Villunus";
     private static final String REPO = "terraforming-mars-telemetry";
     private static final String MAVEN_GROUP_ID = "dev.tmmissioncontrol";
     private static final String MAVEN_ARTIFACT_ID = "terraforming-mars-telemetry";

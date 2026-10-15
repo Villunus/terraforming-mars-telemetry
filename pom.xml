@@ -86,7 +86,7 @@
         <jpackage.input.dir>${project.build.directory}\jpackage-input\${project.version}</jpackage.input.dir>
         <jpackage.dest.dir>${project.basedir}\dist\installer</jpackage.dest.dir>
         <main.jar>${project.build.finalName}.jar</main.jar>
-        <vendor>deccles</vendor>
+        <vendor>Villunus</vendor>
         <!-- Stable so a newer MSI upgrades the installed copy. -->
         <win.upgrade.uuid>c4e8a1b2-7d36-4f90-9a15-3e6b8c0d2f47</win.upgrade.uuid>
       </properties>

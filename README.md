@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/deccles/terraforming-mars-telemetry/releases/download/latest/TerraformingMarsTelemetry-Setup.msi"><b>⬇ Download for Windows</b></a>
+  <a href="https://github.com/Villunus/terraforming-mars-telemetry/releases/download/latest/TerraformingMarsTelemetry-Setup.msi"><b>⬇ Download for Windows</b></a>
 </p>
 
 <p align="center">
