@@ -1733,6 +1733,59 @@ async function viewGame(id) {
   window.scrollTo(0, 0);
 }
 
+let keepAwake = false;
+let wakeLock = null;
+let wakeRequest = null;
+
+/** Takes the screen wake lock while the toggle is on; browsers drop it whenever the tab is hidden. */
+async function syncWakeLock() {
+  if (wakeRequest) await wakeRequest.catch(() => {}); // the button click also reaches the document listener
+  if (keepAwake && !wakeLock && document.visibilityState === "visible") {
+    wakeRequest = navigator.wakeLock.request("screen");
+    try {
+      const lock = await wakeRequest;
+      lock.addEventListener("release", () => { if (wakeLock === lock) wakeLock = null; });
+      wakeLock = lock;
+    } catch {
+      // Battery saver or a missing user gesture can refuse it; the next tap or tab return retries.
+    } finally {
+      wakeRequest = null;
+    }
+    if (!keepAwake) syncWakeLock(); // switched off while the request was pending
+  } else if (!keepAwake && wakeLock) {
+    wakeLock.release();
+    wakeLock = null;
+  }
+}
+
+function setKeepAwake(on) {
+  keepAwake = on;
+  $("awake-btn").setAttribute("aria-pressed", String(on));
+  try {
+    localStorage.setItem("keepAwake", String(on));
+  } catch {
+    // Private windows can refuse storage; the toggle still works for this visit.
+  }
+  syncWakeLock();
+}
+
+function bindWakeUi() {
+  if (!("wakeLock" in navigator)) return; // plain-http pages and older browsers: leave the button hidden
+  const btn = $("awake-btn");
+  btn.hidden = false;
+  btn.addEventListener("click", () => setKeepAwake(!keepAwake));
+  document.addEventListener("visibilitychange", syncWakeLock);
+  // iOS only grants the lock from a tap, so a remembered "on" retries on the first one.
+  document.addEventListener("click", syncWakeLock);
+  let saved = false;
+  try {
+    saved = localStorage.getItem("keepAwake") === "true";
+  } catch {
+    // no storage: start off
+  }
+  setKeepAwake(saved);
+}
+
 function backToLive() {
   viewingGame = null;
   $("viewing-bar").hidden = true;
@@ -1779,6 +1832,7 @@ bindCorpUi();
 bindTipUi();
 bindPhoneAccessUi();
 bindGamesUi();
+bindWakeUi();
 fitWordmark();
 document.fonts?.ready.then(fitWordmark);
 window.addEventListener("resize", fitWordmark);

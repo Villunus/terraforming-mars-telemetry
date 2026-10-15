@@ -62,7 +62,8 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
   font-size: 0.8rem;
   cursor: pointer;
 }
-.games-btn:hover, .games-btn[aria-expanded="true"] { color: var(--ink); border-color: var(--accent); }
+.games-btn:hover, .games-btn[aria-expanded="true"], .games-btn[aria-pressed="true"] { color: var(--ink); border-color: var(--accent); }
+.games-btn[hidden] { display: none; }
 .games-panel { margin: 12px 0 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
 .games-panel[hidden], .viewing-bar[hidden] { display: none !important; }
 .games-list { margin: 0; padding: 0; list-style: none; }
