@@ -222,7 +222,9 @@ public final class LogParser {
             }
             m = PLAYER_PLAY.matcher(line);
             if (m.find()) {
-                setCurrentPlayer(Integer.parseInt(m.group(1)));
+                // In final plant conversion the local client places the other seat's greeneries ("Player 1 Play for player 2").
+                boolean finalGreenery = "FinalPlantConversion".equals(state.phase);
+                setCurrentPlayer(Integer.parseInt(m.group(finalGreenery ? 2 : 1)));
                 resourcePlayer = Integer.parseInt(m.group(2));
             }
             m = PLAYER_PLAYS_ID.matcher(line);
@@ -368,7 +370,8 @@ public final class LogParser {
             }
 
             m = PLAYING_CARD.matcher(line);
-            if (m.find()) {
+            // "Playing action (N)" can come before the line naming whose turn it is; "Playing (N)" always follows it.
+            if (m.find() && !line.contains("Playing action")) {
                 collectDraws = false;
                 pendingHandCard = "";
                 playCard(currentPlayer, m.group(2).trim());

@@ -79,7 +79,7 @@ Java 21 and Maven 3.9+.
 
 ```bash
 mvn package
-java -jar target/terraforming-mars-telemetry-1.0.27.jar
+java -jar target/terraforming-mars-telemetry-1.0.28.jar
 ```
 
 Or double-click `start.bat`. A browser tab opens at [http://127.0.0.1:8765/](http://127.0.0.1:8765/). Leave it on a second monitor while you play.
