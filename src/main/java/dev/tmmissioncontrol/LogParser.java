@@ -91,6 +91,8 @@ public final class LogParser {
 
     private int currentPlayer = 1;
     private int resourcePlayer = 0;
+    /** The seat whose production the log is paying out; each seat's payout starts after "Hiding End turn button". */
+    private int productionBlockPlayer = 0;
     private int headerPlayer = 0;
     private boolean inHeader;
     private int pendingCorpMc = -1;
@@ -162,6 +164,7 @@ public final class LogParser {
                 applyStartTime();
                 currentPlayer = 1;
                 resourcePlayer = 0;
+                productionBlockPlayer = 0;
                 headerPlayer = 0;
                 inHeader = true;
                 pendingCorpMc = -1;
@@ -206,6 +209,9 @@ public final class LogParser {
                 state.player(currentPlayer).tradeFleets++;
             }
 
+            if (productionPhase() && line.contains("Hiding End turn button")) {
+                productionBlockPlayer = 0;
+            }
             m = TRAY.matcher(line);
             if (m.find()) {
                 setCurrentPlayer(Integer.parseInt(m.group(1)));
@@ -289,6 +295,7 @@ public final class LogParser {
                 }
                 state.phase = humanPhase(gamePhase);
                 resourcePlayer = 0;
+                productionBlockPlayer = 0;
                 if (state.phase.toLowerCase().contains("endgame")) {
                     state.recordGenerationEnd();
                 }
@@ -583,6 +590,9 @@ public final class LogParser {
             if (target == null) {
                 target = state.player(currentPlayer);
             }
+            if (productionPhase()) {
+                productionBlockPlayer = target.id;
+            }
         }
         setField(target, kind, production, to);
         if (!production && "MegaCredit".equals(kind) && from == 0) {
@@ -798,6 +808,14 @@ public final class LogParser {
         }
         if (matches.size() == 1) {
             return matches.get(0);
+        }
+        // Two seats can hold the same amount mid-payout; the change belongs to the seat being paid.
+        if (productionPhase()) {
+            for (PlayerState p : matches) {
+                if (p.id == productionBlockPlayer) {
+                    return p;
+                }
+            }
         }
         PlayerState byCorpStart = ownerByCorpStart(kind, production, from, to, matches);
         if (byCorpStart != null) {
