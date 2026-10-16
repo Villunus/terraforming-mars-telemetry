@@ -118,12 +118,38 @@ function renderPlacements(p) {
     </div>`;
 }
 
-function renderTags(tags) {
+function renderTags(p) {
+  const tags = p.tags;
   const cells = tags
-    ? Object.entries(tags).sort(([a], [b]) => (a === "none") - (b === "none")).map(([k, v]) =>
-      `<span class="tag-count${v ? "" : " zero"}" title="${escapeHtml(TAG_LABEL[k] || k)} ${v}">${tagIcon(k)}<span class="n">${v}</span></span>`)
+    ? Object.entries(tags).sort(([a], [b]) => (a === "none") - (b === "none")).map(([k, v]) => {
+      const inner = `${tagIcon(k)}<span class="n">${v}</span>`;
+      if (!v) {
+        return `<span class="tag-count zero" title="${escapeHtml(TAG_LABEL[k] || k)} ${v}">${inner}</span>`;
+      }
+      return `<span class="tip tag-count" tabindex="0" data-tip-key="tags-${p.id}-${escapeHtml(k)}">${inner}`
+        + `<span class="tip-pop" role="tooltip">${tagCardList(p, k, v)}</span></span>`;
+    })
     : [];
   return `<div class="board-tags"><h3 class="section-title board-subtitle">Tags</h3><div class="tags">${cells.join("")}</div></div>`;
+}
+
+/** The played cards behind one tag count, in play order; the corporation covers whatever the cards don't. */
+function tagCardList(p, tag, count) {
+  const cards = [...(p.greenCards || []), ...(p.blueCards || []), ...(p.events || [])]
+    .map((c) => ({ c, n: tag === "none"
+      ? ((c.tags || []).length ? 0 : 1)
+      : (c.tags || []).filter((t) => String(t).toLowerCase() === tag).length }))
+    .filter((r) => r.n > 0)
+    .sort((a, b) => (a.c.generation || 0) - (b.c.generation || 0));
+  const rows = cards.map((r) => `<li>${cardDetail(r.c)}</li>`);
+  const fromCards = cards.reduce((sum, r) => sum + r.n, 0);
+  if (count > fromCards && p.corporation && p.corporation !== "Unknown") {
+    const corp = { name: p.corporation, tags: [tag], extra: corpRuleText(p.corpRules) };
+    rows.unshift(`<li>${cardDetail(corp)}<span class="tip-card-vp">Corporation</span></li>`);
+  }
+  const label = TAG_LABEL[tag] || tag.charAt(0).toUpperCase() + tag.slice(1);
+  return `<span class="tip-card-head">${tagIcon(tag)}<strong>${escapeHtml(label)} · ${count}</strong></span>`
+    + `<ul class="tag-list">${rows.join("")}</ul>`;
 }
 
 function extra(text) {
@@ -360,7 +386,7 @@ function renderPlayer(p, generation) {
       </div>
       ${renderCubes(p)}
       ${renderPlacements(p)}
-      ${renderTags(p.tags)}
+      ${renderTags(p)}
       ${renderColonySection(p, lastStateData)}
       <p class="board-awards"></p>
       <div class="board-hand">${renderCards("Hand", p.hand, "hand", generation)}</div>
@@ -487,7 +513,7 @@ function escapeHtml(s) {
   }[c]));
 }
 
-const PLANT_LEAF = '<g transform="translate(12 12) rotate(45) scale(.86) translate(-12 -14.1)" fill="#185102"><path d="M12 1.6 20 13.4H4z"/><circle cx="8.1" cy="15.5" r="4.5"/><circle cx="15.9" cy="15.5" r="4.5"/><path d="M11.2 18.1 9.6 26.6h4.8L12.8 18.1z"/></g>';
+const PLANT_LEAF = '<g transform="translate(12 12) rotate(45) scale(.86) translate(-12 -14.1)" fill="#185102"><path d="M12 1.6 20 13.4C21.3 17.4 17 20.1 12 20.1S2.7 17.4 4 13.4Z"/><path d="M11.2 18.1 9.6 26.6h4.8L12.8 18.1z"/></g>';
 const TAG_GLYPH = {
   building: '<path fill="#c07340" d="M4 20V9l8-5 8 5v11h-6v-6H10v6z"/>',
   space: '<g fill="#f2d020"><path d="M22.2 12 14.4 10.85 14.4 13.15z"/><path d="M22.2 12 14.4 10.85 14.4 13.15z" transform="rotate(45 12 12)"/><path d="M22.2 12 14.4 10.85 14.4 13.15z" transform="rotate(90 12 12)"/><path d="M22.2 12 14.4 10.85 14.4 13.15z" transform="rotate(135 12 12)"/><path d="M22.2 12 14.4 10.85 14.4 13.15z" transform="rotate(180 12 12)"/><path d="M22.2 12 14.4 10.85 14.4 13.15z" transform="rotate(225 12 12)"/><path d="M22.2 12 14.4 10.85 14.4 13.15z" transform="rotate(270 12 12)"/><path d="M22.2 12 14.4 10.85 14.4 13.15z" transform="rotate(315 12 12)"/><circle cx="12" cy="12" r="2.15"/></g>',
@@ -495,7 +521,7 @@ const TAG_GLYPH = {
   power: '<path fill="#a855f7" d="M13 2 4 14h7l-1 8 10-14h-7z"/>',
   earth: '<g style="clip-path:circle(34.4% at 50% 50%)"><rect width="24" height="24" fill="none"/><g transform="translate(12 12) scale(1.28) translate(-12 -12)" fill="#00d0a0"><path d="M2.3 9.1 4 9.1 7.4 10.7 9.1 12.4 8.2 14.1 9.1 16.6 10.7 19.1 9.9 20 6.5 19.1 4 16.6 2.3 14.1 2.3 10.7Z"/><path d="M11.6 4 13.3 4 14.9 4.9 16.6 6.5 17.5 8.2 18.3 9.9 18.3 11.6 18.3 13.3 17.5 14.9 16.6 16.6 14.9 18.3 15.8 16.6 15.8 14.9 14.1 13.3 13.3 11.6 11.6 10.7 9.9 10.7 10.7 9.1 12.4 9.1 13.3 7.4 13.3 6.5 14.1 4.9 12.4 4Z"/></g></g><circle cx="12" cy="12" r="8.8" fill="none" stroke="#00d0a0" stroke-width="1.15"/>',
   jovian: '<g transform="rotate(-8 12 12)"><circle cx="12" cy="12" r="10.4" fill="#c09000"/><rect x="-2" y="6.8" width="28" height="1.7" fill="#080604"/><rect x="-2" y="15.2" width="28" height="3.4" fill="#080604"/></g>',
-  plant: '<g transform="translate(12 12) rotate(45) scale(.86) translate(-12 -14.1)" fill="#8ced05"><path d="M12 1.6 20 13.4H4z"/><circle cx="8.1" cy="15.5" r="4.5"/><circle cx="15.9" cy="15.5" r="4.5"/><path d="M11.2 18.1 9.6 26.6h4.8L12.8 18.1z"/></g>',
+  plant: '<g transform="translate(12 12) rotate(45) scale(.86) translate(-12 -14.1)" fill="#8ced05"><path d="M12 1.6 20 13.4C21.3 17.4 17 20.1 12 20.1S2.7 17.4 4 13.4Z"/><path d="M11.2 18.1 9.6 26.6h4.8L12.8 18.1z"/></g>',
   microbe: '<circle cx="9.6" cy="12" r="4" fill="#98c828"/><path d="M13.6 6.2 18.2 10.2" fill="none" stroke="#98c828" stroke-width="2.5" stroke-linecap="round"/><path d="M17.5 13.5 11.4 18.8" fill="none" stroke="#98c828" stroke-width="2.6" stroke-linecap="round"/>',
   animal: '<g fill="#00e040"><circle cx="6.6" cy="6.8" r="1.85"/><circle cx="10.2" cy="4.7" r="1.85"/><circle cx="14.2" cy="4.7" r="1.85"/><circle cx="17.6" cy="7" r="1.75"/><rect x="6.3" y="11.6" width="11.6" height="6.4" rx="3.2"/></g>',
   city: '<g fill="#b2d8d6"><path d="M1.2 10.8A10.8 10.6 0 0 0 22.8 10.8Z"/><rect x="4.8" y="8" width="2.6" height="3.2"/><rect x="10.2" y="2" width="3.6" height="9.2"/><rect x="16.2" y="5.2" width="2.8" height="6"/></g>',
@@ -624,15 +650,26 @@ function bindBannerUi() {
 function formatReq(req) {
   if (!req || typeof req !== "object") return "";
   const parts = [];
+  const plural = (n, one, many) => `${n} ${Number(n) === 1 ? one : many}`;
   if (req.temp != null) parts.push(`${req.temp} °C`);
+  if (req.maxtemp != null) parts.push(`max ${req.maxtemp} °C`);
   if (req.o2 != null) parts.push(`${req.o2}% oxygen`);
-  if (req.ocean != null) parts.push(`${req.ocean} ocean${Number(req.ocean) === 1 ? "" : "s"}`);
+  if (req.maxo2 != null) parts.push(`max ${req.maxo2}% oxygen`);
+  if (req.ocean != null) parts.push(plural(req.ocean, "ocean", "oceans"));
+  if (req.maxocean != null) parts.push(`max ${plural(req.maxocean, "ocean", "oceans")}`);
   if (req.venus != null) parts.push(`${req.venus}% Venus`);
   if (req.tr != null) parts.push(`${req.tr} TR`);
   if (req.note) parts.push(req.note);
+  // Everything else counts something you have: tags (the catalog files power tags under "energy"), tiles or resources.
+  const counted = {
+    energy: ["power tag", "power tags"], "venus tag": ["Venus tag", "Venus tags"],
+    city: ["city", "cities"], greenery: ["greenery tile", "greenery tiles"], colony: ["colony", "colonies"],
+    floater: ["floater", "floaters"], ti: ["titanium production", "titanium production"],
+  };
   for (const [k, v] of Object.entries(req)) {
-    if (["temp", "o2", "ocean", "venus", "tr", "note"].includes(k) || v == null || v === "") continue;
-    parts.push(`${k} ${v}`);
+    if (["temp", "maxtemp", "o2", "maxo2", "ocean", "maxocean", "venus", "tr", "note"].includes(k) || v == null || v === "") continue;
+    const [one, many] = counted[k] || [`${k} tag`, `${k} tags`];
+    parts.push(plural(v, one, many));
   }
   return parts.length ? "Requires " + parts.join(", ") : "";
 }
@@ -1331,6 +1368,11 @@ function cardRef(label) {
 /** `label` with a hover/tap popover describing `card` (a played card, or a drawn card from the server). */
 function cardPopover(card, label) {
   const text = escapeHtml(label);
+  return `<span class="tip card-ref" tabindex="0" data-tip-key="${cardRefScope}${++cardRefSeq}">${text}<span class="tip-pop" role="tooltip">${cardDetail(card)}</span></span>`;
+}
+
+/** What a card is and does: name, cost and tags, requirement, gains, printed text, VP and tokens. */
+function cardDetail(card) {
   const body = String(card.extra || "").split("\n")
     .map((line) => line.trim())
     .filter((line) => line && !/^-+$/.test(line))
@@ -1341,13 +1383,12 @@ function cardPopover(card, label) {
   const printedVp = card.printedVp ?? card.vp; // played cards carry printedVp, drawn cards vp
   const vp = printedVp ? `<span class="tip-card-vp">${printedVp} VP</span>` : "";
   const tokens = card.tokens ? `<span class="tip-card-vp">${card.tokens} ${tokenWord(card.tokenType, card.tokens)} now</span>` : "";
-  const pop = `<span class="tip-card-head"><strong>${escapeHtml(card.name)}</strong>${cost}${tags}</span>`
+  return `<span class="tip-card-head"><strong>${escapeHtml(card.name)}</strong>${cost}${tags}</span>`
     + (req ? `<span class="tip-card-req">${escapeHtml(req)}</span>` : "")
     + (gains.length ? `<span class="tip-card-gains">${gains.join("")}</span>` : "")
     + (places.length ? `<span class="tip-def">${places.join(" · ")}</span>` : "")
     + (body ? `<span class="tip-def">${escapeHtml(body)}</span>` : "")
     + vp + tokens;
-  return `<span class="tip card-ref" tabindex="0" data-tip-key="${cardRefScope}${++cardRefSeq}">${text}<span class="tip-pop" role="tooltip">${pop}</span></span>`;
 }
 
 function tokenWord(type, n) {

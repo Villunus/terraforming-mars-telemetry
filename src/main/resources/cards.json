@@ -180,7 +180,7 @@
     "production": {
       "energy": 1
     },
-    "extra": "Effect:\n(Effect: When playing a power card OR THE STANDARD PROJECT POWER plant, you pay 6 it.",
+    "extra": "Effect:\n(Effect: When playing a power card OR THE STANDARD PROJECT POWER PLANT, you pay 3 mc less for it.)",
     "place": [],
     "req": {}
   },
@@ -1582,7 +1582,7 @@
     "vp": 1,
     "resources": {},
     "production": {},
-    "extra": "",
+    "extra": "Effect:\n(Effect: When you play a space card, you pay 2 mc less for it.)",
     "place": [],
     "req": {}
   },
@@ -2493,7 +2493,7 @@
     "vp": 2,
     "resources": {},
     "production": {},
-    "extra": "",
+    "extra": "Effect:\n(Effect: When you play a card, you pay 2 mc less for it.)",
     "place": [],
     "req": {}
   },
@@ -2674,7 +2674,7 @@
     "production": {
       "energy": 4
     },
-    "extra": "",
+    "extra": "Effect:\n(Effect: When you play a space card, you pay 2 mc less for it.)\n------\n(Requires 4 science tags. Increase your energy production 4 steps.)",
     "place": [],
     "req": {
       "science": 4
@@ -2988,7 +2988,7 @@
     "production": {
       "energy": 6
     },
-    "extra": "",
+    "extra": "Effect:\n(Effect: When you play a space card, you pay 2 mc less for it.)\n------\n(Requires 5 science tags. Increase your energy production 6 steps.)",
     "place": [],
     "req": {
       "science": 5
@@ -3190,7 +3190,7 @@
     "vp": null,
     "resources": {},
     "production": {},
-    "extra": "",
+    "extra": "Effect:\n(Effect: When you play an Earth card, you pay 3 mc less for it.)",
     "place": [],
     "req": {}
   },
@@ -4096,7 +4096,7 @@
     "vp": 3,
     "resources": {},
     "production": {},
-    "extra": "",
+    "extra": "Effect:\n(Effect: When you play a card, you pay 2 mc less for it.)\n------\n(Requires 7 science tags.)",
     "place": [],
     "req": {
       "science": 7
@@ -4286,7 +4286,7 @@
     "production": {
       "energy": 1
     },
-    "extra": "",
+    "extra": "Reduce any-energy 1\n(Requires 2 power tags. Decrease any energy production 1 step and increase your own 1 step.)",
     "place": [],
     "req": {
       "energy": 2
@@ -4415,7 +4415,7 @@
       "energy": -1,
       "mc": 2
     },
-    "extra": "",
+    "extra": "Effect:\n(Effect: When you play a space card, you pay 2 mc less for it.)\n------\n(Requires 5% oxygen. Decrease your energy production 1 step and increase your mc production 2 steps.)",
     "place": [],
     "req": {
       "o2": 5
@@ -5368,7 +5368,7 @@
     "vp": null,
     "resources": {},
     "production": {},
-    "extra": "",
+    "extra": "(This tag counts as any tag of your choice when meeting a requirement.)",
     "place": [],
     "req": {}
   },
