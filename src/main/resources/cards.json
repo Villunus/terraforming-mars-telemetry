@@ -1098,7 +1098,7 @@
     "production": {
       "ti": 1
     },
-    "extra": "",
+    "extra": "Reduce any-ti 1\n(Requires that you have titanium production. Decrease any titanium production 1 step and increase your own 1 step.)",
     "place": [],
     "req": {
       "ti": 1
@@ -1140,7 +1140,7 @@
       "mc": -1,
       "plant": 2
     },
-    "extra": "",
+    "extra": "Reduce any-heat 1\n(Requires 3 ocean tiles. Decrease your mc production 1 step and any heat production 1 step. Increase your plant production 2 steps.)",
     "place": [],
     "req": {
       "ocean": 3
@@ -1242,7 +1242,7 @@
       "ti": 2
     },
     "production": {},
-    "extra": "",
+    "extra": "-3 any-plant\n(Raise temperature 1 step and gain 2 ti. Remove up to 3 plants from any player.)",
     "place": [],
     "req": {}
   },
@@ -1263,7 +1263,7 @@
       "temp": 1
     },
     "production": {},
-    "extra": "",
+    "extra": "-3 any-plant\n(Raise temperature 1 step and place an ocean tile. Remove up to 3 plants from any player.)",
     "place": [
       "ocean"
     ],
@@ -1286,7 +1286,7 @@
       "ti": 4
     },
     "production": {},
-    "extra": "",
+    "extra": "-4 any-plant\n(Raise temperature 2 steps and gain 4 ti. Remove up to 4 plants from any player.)",
     "place": [],
     "req": {}
   },
@@ -1872,7 +1872,7 @@
       "steel": 4
     },
     "production": {},
-    "extra": "",
+    "extra": "-8 any-plant\n(Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants from any player.)",
     "place": [],
     "req": {}
   },
@@ -2697,7 +2697,7 @@
       "temp": 2
     },
     "production": {},
-    "extra": "",
+    "extra": "-6 any-plant\n(Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants from any player.)",
     "place": [
       "2 oceans"
     ],
@@ -3582,10 +3582,10 @@
     "vp": -1,
     "resources": {},
     "production": {
-      "energy": 1,
+      "energy": -1,
       "mc": 2
     },
-    "extra": "",
+    "extra": "Reduce any-mc 2\n(Decrease your energy production 1 step and any mc production 2 steps. Increase your mc production 2 steps.)",
     "place": [],
     "req": {}
   },
@@ -4668,7 +4668,7 @@
     "production": {
       "energy": 1
     },
-    "extra": "",
+    "extra": "Reduce any-heat 2\n(Decrease any heat production 2 steps and increase your energy production 1 step.)",
     "place": [],
     "req": {}
   },
@@ -4777,7 +4777,7 @@
     "production": {
       "energy": 2
     },
-    "extra": "",
+    "extra": "Reduce any-plant 1\n(Requires 6% oxygen. Decrease any plant production 1 step and increase your energy production 2 steps.)",
     "place": [],
     "req": {
       "o2": 6
@@ -5132,7 +5132,7 @@
     "production": {
       "energy": 1
     },
-    "extra": "",
+    "extra": "Reduce any-energy 1\n(Decrease any energy production 1 step and increase your own 1 step.)",
     "place": [],
     "req": {}
   },
