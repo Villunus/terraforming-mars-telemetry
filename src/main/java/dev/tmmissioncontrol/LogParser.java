@@ -212,8 +212,10 @@ public final class LogParser {
             if (productionPhase() && line.contains("Hiding End turn button")) {
                 productionBlockPlayer = 0;
             }
+            // The HUD tray follows whichever player panel is on screen, including one the user clicked to look at.
+            // It only stands in for the turn during setup, before the game names the current player.
             m = TRAY.matcher(line);
-            if (m.find()) {
+            if (m.find() && state.generation <= 1 && !"Actions".equals(state.phase)) {
                 setCurrentPlayer(Integer.parseInt(m.group(1)));
             }
             m = CURRENT_PLAYER.matcher(line);
