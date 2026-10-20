@@ -218,7 +218,7 @@
       "mc": 60
     },
     "production": {},
-    "extra": "",
+    "extra": "Effect:\n(Effect: When playing an Earth card, you pay 3 mc less for it.)",
     "place": [],
     "req": {}
   },
@@ -260,7 +260,7 @@
     "production": {
       "mc": 3
     },
-    "extra": "",
+    "extra": "Effect:\n(Effect: When you play a building tag, you pay 2 mc less for it.)",
     "place": [],
     "req": {}
   },
@@ -319,7 +319,7 @@
       "prelude": 1
     },
     "production": {},
-    "extra": "As your first action, draw 3 Prelude cards, and play one of them. Discard the other two.)",
+    "extra": "Effect: When you play a science tag, you pay 2 MC less for it.\nAs your first action, draw 3 Prelude cards, and play one of them. Discard the other two.",
     "place": [],
     "req": {}
   },

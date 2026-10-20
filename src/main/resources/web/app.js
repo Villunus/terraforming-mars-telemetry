@@ -57,12 +57,14 @@ function renderCubes(p) {
     ["Energy", "energy", p.energy, p.energyProd],
     ["Heat", "heat", p.heat, p.heatProd],
   ];
-  return `<div class="board-cubes"><table class="cubes">
-    <tr><th>Resource</th><th class="num">Prod</th><th class="num">Qty</th></tr>
-    ${rows.map(([n, key, q, pr]) => {
-      const tr = key === "tr";
-      return `<tr${tr ? ` class="tr-row" title="Terraform rating: also added to your M€ income each generation"` : ""}><td><span class="res-name">${resMark(key)}<span>${n}</span></span></td><td class="num prod${tr ? " na" : ""}">${tr ? "–" : pr ?? 0}</td><td class="num">${q ?? 0}</td></tr>`;
-    }).join("")}
+  // One column per resource: icon, then production on a brown band like the player board, then quantity.
+  const tip = (n, key) => key === "tr" ? "Terraform rating: also added to your M€ income each generation" : n;
+  return `<div class="board-cubes"><h3 class="section-title board-subtitle">Resources</h3><table class="cubes">
+    <tr class="cubes-icons">${rows.map(([n, key]) => `<th title="${escapeHtml(tip(n, key))}">${resMark(key)}</th>`).join("")}</tr>
+    <tr class="cubes-prod">${rows.map(([n, key, , pr]) => key === "tr"
+      ? `<td class="na" title="TR has no production">–</td>`
+      : `<td title="${escapeHtml(n)} production">${pr ?? 0}</td>`).join("")}</tr>
+    <tr class="cubes-qty">${rows.map(([n, key, q]) => `<td title="${escapeHtml(tip(n, key))}">${q ?? 0}</td>`).join("")}</tr>
   </table></div>`;
 }
 
@@ -674,24 +676,6 @@ function formatReq(req) {
   return parts.length ? "Requires " + parts.join(", ") : "";
 }
 
-function drawnGainsText(c) {
-  const bits = [];
-  for (const [k, v] of Object.entries(c.production || {})) {
-    if (v != null && v !== 0) bits.push(`${Number(v) > 0 ? "+" : ""}${v} ${resLabel(resKey(k))} prod`);
-  }
-  for (const [k, v] of Object.entries(c.resources || {})) {
-    if (v != null && v !== 0) bits.push(`${Number(v) > 0 ? "+" : ""}${v} ${resLabel(resKey(k))}`);
-  }
-  if (c.vp != null) bits.push(`${c.vp} VP`);
-  return bits.join(" · ");
-}
-
-function drawnTipText(c) {
-  const extraText = (c.extra || "").replace(/\s+$/g, "").trim();
-  if (extraText) return extraText;
-  return [formatReq(c.req), drawnGainsText(c)].filter(Boolean).join("\n");
-}
-
 function renderDrawn(play) {
   const drawn = play && play.drawn ? play.drawn : [];
   if (!drawn.length) return "";
@@ -699,11 +683,7 @@ function renderDrawn(play) {
     const inner = `<span class="drawn-name">${escapeHtml(c.name)}</span>
       <span class="drawn-meta">${c.cost != null ? costSym(c.cost) : ""}${(c.tags || []).map(tagIcon).join("")}</span>`;
     const cls = `drawn-card ${escapeHtml((c.color || "").toLowerCase())}`;
-    const text = drawnTipText(c);
-    if (!text) {
-      return `<span class="${cls}">${inner}</span>`;
-    }
-    return tipWrap("drawn-" + c.name, inner, cls, `<span class="tip-def">${escapeHtml(text)}</span>`, text);
+    return tipWrap("drawn-" + c.name, inner, cls, cardDetail(c));
   }).join("")}</span>`;
 }
 

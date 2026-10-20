@@ -643,19 +643,26 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 }
 
 .board-cubes { margin: 8px 0 14px; }
-table.cubes { width: 100%; border-collapse: collapse; margin: 0; table-layout: fixed; }
-table.cubes th, table.cubes td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-table.cubes th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
-table.cubes .res-name { display: inline-flex; align-items: center; gap: 8px; }
-table.cubes .res-box { flex: 0 0 auto; }
-table.cubes th.num, table.cubes td.num {
-  width: 4.5rem;
-  text-align: right;
+table.cubes { border-collapse: collapse; margin: 0; }
+table.cubes th, table.cubes td {
+  min-width: 2.6rem;
+  text-align: center;
+  padding: 4px 4px;
   font-variant-numeric: tabular-nums;
 }
-table.cubes td.num { font-size: 1.15rem; }
-table.cubes td.prod { color: #f0c27a; }
-table.cubes td.prod.na { color: var(--muted); opacity: 0.6; }
+table.cubes th { padding-bottom: 6px; }
+table.cubes .res-sym { justify-content: center; }
+table.cubes td { font-size: 1.15rem; font-weight: 650; }
+/* Production sits on a brown band, like the production track on the physical player board. */
+table.cubes .cubes-prod td {
+  background: repeating-linear-gradient(135deg, #5a3a22 0 6px, #4a2e1a 6px 9px);
+  background-attachment: fixed; /* stripes line up across cells instead of restarting in each one */
+  color: #f6d9b8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+table.cubes .cubes-prod td:first-child { border-radius: 6px 0 0 6px; }
+table.cubes .cubes-prod td:last-child { border-radius: 0 6px 6px 0; }
+table.cubes .cubes-prod td.na { color: #b89a7c; }
 
 .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 14px; }
 .tag-count { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; font-weight: 650; }

@@ -162,6 +162,10 @@ final class FirewallSetup {
         }
     }
 
+    /**
+     * The installed app and a development run (javaw.exe) each need their own program rule under the same name,
+     * so only this program's old rules are replaced; deleting by name would remove the other one's and make it ask again.
+     */
     private static String script(Path program) {
         String exe = program.toString();
         String psExe = exe.replace("'", "''");
@@ -188,8 +192,7 @@ final class FirewallSetup {
                 netsh advfirewall firewall delete rule name="Terraforming Mars Telemetry HTTPS" >nul 2>nul
                 netsh advfirewall firewall delete rule name="Terraforming Mars Telemetry 8080" >nul 2>nul
                 netsh advfirewall firewall delete rule name="Terraforming Mars Telemetry mDNS" >nul 2>nul
-                netsh advfirewall firewall delete rule name="%1$s" >nul 2>nul
-                powershell -NoProfile -Command "$exe='%3$s'; Get-NetFirewallApplicationFilter | Where-Object { [Environment]::ExpandEnvironmentVariables($_.Program) -ieq $exe } | Get-NetFirewallRule | Where-Object { $_.Direction -eq 'Inbound' -and $_.Action -eq 'Block' } | Remove-NetFirewallRule"
+                powershell -NoProfile -Command "$exe='%3$s'; Get-NetFirewallApplicationFilter | Where-Object { [Environment]::ExpandEnvironmentVariables($_.Program) -ieq $exe } | Get-NetFirewallRule | Where-Object { $_.Direction -eq 'Inbound' -and ($_.Action -eq 'Block' -or $_.DisplayName -eq '%1$s') } | Remove-NetFirewallRule"
                 netsh advfirewall firewall add rule name="Terraforming Mars Telemetry" dir=in action=allow protocol=TCP localport=443,8080,8765 profile=any enable=yes
                 netsh advfirewall firewall add rule name="Terraforming Mars Telemetry HTTPS" dir=in action=allow protocol=TCP localport=443 profile=any enable=yes
                 netsh advfirewall firewall add rule name="Terraforming Mars Telemetry mDNS" dir=in action=allow protocol=UDP localport=5353 profile=any enable=yes
