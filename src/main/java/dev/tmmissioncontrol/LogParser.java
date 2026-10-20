@@ -25,6 +25,11 @@ public final class LogParser {
             "\\[PlayerResources] Set (MegaCredit|Steel|Titanium|Plant|Energy|Heat) (quantity|production) from (-?\\d+) to (-?\\d+)");
     private static final Pattern TR = Pattern.compile(
             "\\[BoardDatas] Set terraforming rating for player (\\d+), from (-?\\d+) to (-?\\d+)");
+    /** "[BoardDatas] Set OxygenLevel from 3 to 4" as play goes; "OxygenLevel: 3" in a game's header. */
+    private static final Pattern GLOBAL_SET = Pattern.compile(
+            "\\[BoardDatas] Set (TemperatureLevel|OxygenLevel|OceanLevel|VenusScale) from -?\\d+ to (-?\\d+)");
+    private static final Pattern GLOBAL_HEADER = Pattern.compile(
+            "^(TemperatureLevel|OxygenLevel|OceanLevel|VenusScale): (-?\\d+)$");
     private static final Pattern GENERATION = Pattern.compile("Increment Generation to (\\d+)");
     private static final Pattern PHASE = Pattern.compile("GameSM enters (\\w+)");
     private static final Pattern GAME_ID = Pattern.compile("^GameID: (.+)$");
@@ -278,6 +283,11 @@ public final class LogParser {
             m = BOARD.matcher(line.trim());
             if (m.matches()) {
                 state.board = m.group(1).trim();
+            }
+            m = GLOBAL_SET.matcher(line);
+            Matcher header = GLOBAL_HEADER.matcher(line.trim());
+            if (m.find() || (m = header).matches()) {
+                setGlobal(m.group(1), Integer.parseInt(m.group(2)));
             }
             m = GENERATION.matcher(line);
             if (m.find()) {
@@ -1630,6 +1640,16 @@ public final class LogParser {
             } catch (NumberFormatException ignored) {
                 return fallback;
             }
+        }
+    }
+
+    private void setGlobal(String name, int value) {
+        switch (name) {
+            case "TemperatureLevel" -> state.temperature = value;
+            case "OxygenLevel" -> state.oxygen = value;
+            case "OceanLevel" -> state.oceanLevel = value;
+            case "VenusScale" -> state.venusScale = value;
+            default -> { }
         }
     }
 

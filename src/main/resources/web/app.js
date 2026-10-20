@@ -1009,6 +1009,7 @@ function render(data) {
   boards.className = "boards players-" + Math.max(1, Math.min(5, players.length));
   setHtml(boards, players.map((p) => renderPlayer(p, data.generation)).join(""));
   renderScore(data, players);
+  renderSummary(data, players);
   alignBoardSections();
   applyOpenTip();
 }
@@ -1123,6 +1124,114 @@ function renderScore(data, players) {
   $("score-charts").hidden = !chartsOpen || !showCharts;
   $("score-chart-toggle").setAttribute("aria-expanded", chartsOpen ? "true" : "false");
   $("score-toggle").setAttribute("aria-expanded", scoreOpen ? "true" : "false");
+}
+
+/** Solo goal: every Mars parameter maxed by the last generation (Venus doesn't count). */
+const SOLO_GOALS = [
+  { key: "temperature", label: "Temperature", max: 8, unit: " °C" },
+  { key: "oxygen", label: "Oxygen", max: 14, unit: "%" },
+  { key: "oceans", label: "Oceans", max: 9, unit: "" },
+];
+
+/** The card that earned this player the most VP, from "+3 Birds" score details. */
+function bestVpCard(b) {
+  let best = null;
+  for (const detail of b.cardDetails || []) {
+    const m = String(detail).match(/^([+-]?\d+) (.+)$/);
+    if (m && (!best || Number(m[1]) > best.vp)) best = { vp: Number(m[1]), name: m[2] };
+  }
+  return best && best.vp > 0 ? best : null;
+}
+
+/** Shown once the game is over: who won (or whether you beat Mars solo), final scores and highlights. */
+function renderSummary(data, players) {
+  const box = $("summary");
+  const ended = /endgame/i.test(data.phase || "");
+  if (!ended || !players.length || !data.score) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  const ranked = players
+    .map((p) => ({ p, b: scoreOf(data, p) }))
+    .sort((a, c) => (c.b.total ?? 0) - (a.b.total ?? 0)
+      || creditsOf(c.p, c.b) - creditsOf(a.p, a.b)
+      || a.p.id - c.p.id);
+  const nameOf = (p) => escapeHtml(displayName(p, "P" + p.id));
+  const solo = ranked.length === 1;
+  const g = data.globals;
+  let won = null;
+  let headline;
+  let subline = "";
+  let goals = "";
+
+  if (solo) {
+    const total = ranked[0].b.total ?? 0;
+    if (g) {
+      const misses = SOLO_GOALS.filter((x) => (g[x.key] ?? 0) < x.max);
+      won = misses.length === 0;
+      headline = won ? "You terraformed Mars — you win!" : "Mars wasn't terraformed in time";
+      subline = won
+        ? `Final score ${total} VP`
+        : `Short on ${misses.map((x) => x.label.toLowerCase()).join(", ")} · final score ${total} VP`;
+      goals = `<div class="sum-goals">${SOLO_GOALS.map((x) => {
+        const v = g[x.key] ?? 0;
+        const done = v >= x.max;
+        return `<span class="sum-goal${done ? " done" : ""}">${done ? "✓" : "✗"} ${x.label} <strong>${v}${x.unit}</strong> / ${x.max}${x.unit}</span>`;
+      }).join("")}</div>`;
+    } else {
+      headline = "Game over";
+      subline = `Final score ${total} VP`;
+    }
+  } else {
+    const [first, second] = ranked;
+    const fv = first.b.total ?? 0;
+    const sv = second.b.total ?? 0;
+    const fm = creditsOf(first.p, first.b);
+    const sm = creditsOf(second.p, second.b);
+    if (fv === sv && fm === sm) {
+      headline = "It's a tie";
+      subline = `${fv} VP and ${fm} M€ each`;
+    } else {
+      won = !!first.p.human;
+      headline = won ? "You won!" : `${nameOf(first.p)} won`;
+      subline = fv > sv
+        ? `by ${fv - sv} VP over ${nameOf(second.p)}`
+        : `on the M€ tiebreak — ${fm} M€ to ${sm} M€ at ${fv} VP each`;
+    }
+  }
+
+  const cardsPlayed = new Map();
+  for (const e of data.log || []) {
+    if (e.kind === "card") cardsPlayed.set(e.playerId, (cardsPlayed.get(e.playerId) || 0) + 1);
+  }
+  const parts = [["TR", "tr"], ["Cards", "cards"], ["Greeneries", "greeneries"], ["Cities", "cities"],
+    ["Milestones", "milestones"], ["Awards", "awards"]];
+  const rows = ranked.map(({ p, b }, i) => {
+    const split = parts.filter(([, k]) => b[k]).map(([n, k]) => `${n} ${b[k]}`).join(" · ");
+    const best = bestVpCard(b);
+    const facts = [
+      `${cardsPlayed.get(p.id) || 0} cards played`,
+      best && `best card ${escapeHtml(best.name)} (+${best.vp})`,
+      (p.milestones || []).length && `claimed ${p.milestones.map(escapeHtml).join(", ")}`,
+    ].filter(Boolean).join(" · ");
+    return `<li class="sum-row color-${teamColor(p)}">
+        ${solo ? "" : `<span class="sum-rank">${i + 1}</span>`}
+        <span class="sum-who"><span><span class="name">${nameOf(p)}</span>${p.human && !solo ? ` <span class="games-you">you</span>` : ""}</span>
+          <span class="sum-split">${split}</span>
+          <span class="sum-facts">${facts}</span></span>
+        <strong class="sum-vp">${b.total ?? 0}<small> VP</small></strong>
+      </li>`;
+  }).join("");
+
+  const meta = [`Game over after ${data.generation ?? "?"} generations`, data.board].filter(Boolean).join(" · ");
+  box.className = "summary" + (won === true ? " won" : won === false ? " lost" : "");
+  setHtml(box, `
+    <p class="sum-kicker">${escapeHtml(meta)}</p>
+    <h2 class="sum-headline">${headline}</h2>
+    ${subline ? `<p class="sum-sub">${subline}</p>` : ""}
+    ${goals}
+    <ol class="sum-rows">${rows}</ol>`);
 }
 
 /** "+3 Birds" from the score breakdown, with the card name hoverable. */

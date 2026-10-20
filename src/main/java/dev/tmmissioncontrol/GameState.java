@@ -20,6 +20,11 @@ public final class GameState {
     public boolean prelude;
     public boolean venus;
     public boolean colonies;
+    /** Global parameters as the log reports them: °C, oxygen %, oceans placed, Venus %. */
+    public int temperature = -30;
+    public int oxygen;
+    public int oceanLevel;
+    public int venusScale;
     /**
      * False while players are still choosing corporations and starting cards. The game shows no opponent
      * corporation until then, so neither do we (the AI picks first and its choice is already in the log).
@@ -63,6 +68,10 @@ public final class GameState {
             prelude = false;
             venus = false;
             colonies = false;
+            temperature = -30;
+            oxygen = 0;
+            oceanLevel = 0;
+            venusScale = 0;
             corpsRevealed = false;
             humanId = 1;
             playerOrder.clear();
@@ -93,6 +102,12 @@ public final class GameState {
             out.put("colonyTiles", colonyTiles.values().stream().map(ColonyTile::toMap).toList());
             out.put("generation", generation);
             out.put("phase", phase);
+            Map<String, Object> globals = new LinkedHashMap<>();
+            globals.put("temperature", temperature);
+            globals.put("oxygen", oxygen);
+            globals.put("oceans", oceanLevel);
+            globals.put("venus", venusScale);
+            out.put("globals", globals);
             out.put("live", live);
             out.put("activePlay", activePlay);
             out.put("log", new ArrayList<>(playLog));

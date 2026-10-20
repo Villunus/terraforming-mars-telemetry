@@ -146,6 +146,40 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 .phone-fix:hover { background: #4a360e; }
 .phone-fix:disabled { opacity: 0.7; cursor: wait; }
 
+.summary {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.summary.won { background: #1d2a18; border-color: #4d7a3c; }
+.summary.lost { background: #3a1c12; border-color: #8a4a2a; }
+.sum-kicker { margin: 0; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
+.sum-headline { margin: 4px 0 0; font-size: 1.6rem; font-weight: 700; }
+.summary.won .sum-headline { color: #d7f0c8; }
+.sum-sub { margin: 2px 0 0; color: var(--muted); }
+.sum-goals { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.sum-goal { padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; color: #f0b8a8; font-size: 0.85rem; }
+.sum-goal.done { color: #b9e0a5; }
+.sum-goal strong { color: var(--ink); }
+.sum-rows { list-style: none; margin: 12px 0 0; padding: 0; }
+.sum-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 8px 10px;
+  border-left: 3px solid var(--team, var(--line));
+  border-top: 1px solid var(--line);
+}
+.sum-rank { color: var(--muted); font-weight: 650; min-width: 1ch; }
+.sum-who { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.sum-who .name { color: var(--team, var(--ink)); font-weight: 650; }
+.sum-split { color: var(--ink); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.sum-facts { color: var(--muted); font-size: 0.82rem; }
+.sum-vp { font-size: 1.5rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sum-vp small { font-size: 0.75rem; color: var(--muted); font-weight: 500; }
+
 .banner {
   margin: 16px 0;
   padding: 0;
