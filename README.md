@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/overview.png" alt="Dashboard showing two players' resources, production, milestones, awards and the running score" width="900">
+  <img src="docs/screenshots/overview.png" alt="Dashboard after a finished game: the game-over summary, milestones, awards and each player's resources and production" width="900">
 </p>
 
 While you play, Terraforming Mars Telemetry reads the game's local log and turns it into a live dashboard of
