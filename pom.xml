@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>dev.tmmissioncontrol</groupId>
   <artifactId>terraforming-mars-telemetry</artifactId>
-  <version>1.1.0</version>
+  <version>1.2.0</version>
   <name>Terraforming Mars Telemetry</name>
   <description>Second-screen telemetry for the Terraforming Mars digital client (unofficial fan tool)</description>
 
