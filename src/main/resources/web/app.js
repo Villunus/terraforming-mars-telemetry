@@ -223,8 +223,8 @@ function renderCards(title, cards, cls, generation) {
           ${tokenChip(c)}
         </div>
         ${cardGainsLine(c)}
-        ${copiedLine(c)}
         ${c.extra ? `<p>${extra(c.extra)}</p>` : ""}
+        ${copiedLine(c)}
       </div>`;
     }).join("")}</div>`;
 }
@@ -243,15 +243,19 @@ function cardGainsLine(card) {
   return `<p class="card-gains">${bits.join("")}${places.length ? `<span class="card-places">${places.join(" · ")}</span>` : ""}</p>`;
 }
 
-/** Robotic Workforce and the like: which card's production box was copied, and what that gave. */
-function copiedLine(card) {
-  if (!card.copied || !card.copied.length) return "";
-  return card.copied.map((cp) => {
+/** "Copied: Strip Mine" and that card's production chips, once per copied card. */
+function copiedParts(card) {
+  return (card.copied || []).map((cp) => {
     const gains = Object.entries(cp.production || {})
       .filter(([, v]) => v != null && v !== 0)
       .map(([k, v]) => resSym(k, v, true)).join("");
-    return `<p class="card-gains card-copied"><span class="card-copied-label">Copied ${escapeHtml(cp.name)}</span>${gains}</p>`;
-  }).join("");
+    return `<span class="card-copied-label">Copied: <strong>${escapeHtml(cp.name)}</strong></span>${gains}`;
+  });
+}
+
+/** Robotic Workforce and the like: which card's production box was copied, and what that gave. */
+function copiedLine(card) {
+  return copiedParts(card).map((part) => `<p class="card-gains card-copied">${part}</p>`).join("");
 }
 
 function helpMark() {
@@ -620,6 +624,17 @@ function resSym(rawKey, value, prod) {
 }
 
 function benefitHtml(play) {
+  const effectText = () => {
+    const text = play.effect.length > 110 ? play.effect.slice(0, 107) + "…" : play.effect;
+    return `<span class="banner-benefit-text">${escapeHtml(text)}</span>`;
+  };
+  // Robotic Workforce: its own text, then on the next line what it copied and the production that gave.
+  if (play.copied && play.copied.length) {
+    const gains = Object.entries(play.production || {})
+      .filter(([, v]) => v != null && v !== 0).map(([k, v]) => resSym(k, v, true)).join("");
+    return `${play.effect ? effectText() : ""}<span class="benefit-break"></span>`
+      + `<span class="banner-benefit-text">Copied: <strong>${escapeHtml(play.copied.join(" and "))}</strong></span>${gains}`;
+  }
   const bits = [];
   for (const [k, v] of Object.entries(play.resources || {})) {
     if (v != null && v !== 0) bits.push(resSym(k, v, false));
@@ -629,10 +644,7 @@ function benefitHtml(play) {
   }
   if (play.vp) bits.push(resSym("vp", play.vp, false));
   if (bits.length) return bits.join("");
-  if (play.effect) {
-    const text = play.effect.length > 110 ? play.effect.slice(0, 107) + "…" : play.effect;
-    return `<span class="banner-benefit-text">${escapeHtml(text)}</span>`;
-  }
+  if (play.effect) return effectText();
   return "";
 }
 
@@ -804,7 +816,7 @@ function prettyName(name) {
 function logWhat(e) {
   switch (e.kind) {
     case "card":
-      return `played <span class="log-card ${escapeHtml(e.color)}"></span>${cardRef(e.name)}`;
+      return `played <span class="log-card ${escapeHtml(e.color)}"></span>${cardRef(e.name)}${e.detail ? ` (${escapeHtml(e.detail)})` : ""}`;
     case "action":
       return `used ${cardRef(e.name)}`;
     case "corp-action":
@@ -1496,6 +1508,7 @@ function cardDetail(card) {
     + (gains.length ? `<span class="tip-card-gains">${gains.join("")}</span>` : "")
     + (places.length ? `<span class="tip-def">${places.join(" · ")}</span>` : "")
     + (body ? `<span class="tip-def">${escapeHtml(body)}</span>` : "")
+    + copiedParts(card).map((part) => `<span class="tip-card-gains">${part}</span>`).join("")
     + vp + tokens;
 }
 

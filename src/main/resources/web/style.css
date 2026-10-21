@@ -259,6 +259,7 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 .banner-benefit { margin: 6px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .banner-benefit[hidden] { display: none; }
 .banner-benefit-text { margin: 0; color: #f6d9b8; font-size: 0.95rem; font-weight: 500; }
+.benefit-break { flex-basis: 100%; height: 0; }
 .banner-details { padding: 0 16px 14px; border-top: 1px solid var(--line); }
 .tips { margin: 0; padding: 0 16px 12px 34px; }
 .tips[hidden] { display: none; }
@@ -838,6 +839,7 @@ table.cubes .cubes-prod td.na { color: #b89a7c; }
 .card .card-gains { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 6px; color: var(--ink); }
 .card-places { color: var(--muted); }
 .card-copied-label { color: var(--muted); }
+.card-copied-label strong { color: var(--ink); }
 .token {
   flex: 0 0 auto;
   min-width: 2.15rem;
@@ -1014,7 +1016,7 @@ table.cubes .cubes-prod td.na { color: #b89a7c; }
 .tip-card-head { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; }
 .tip-card-vp { display: block; margin-top: 4px; color: var(--muted); }
 .tip-card-req { display: block; margin: 0 0 4px; color: var(--muted); font-style: italic; }
-.tip-card-gains { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 6px; white-space: normal; }
+.tip-card-gains { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0 6px; white-space: normal; }
 .drawn-card > .tip-pop {
   max-width: min(28rem, 92vw);
   white-space: pre-wrap;

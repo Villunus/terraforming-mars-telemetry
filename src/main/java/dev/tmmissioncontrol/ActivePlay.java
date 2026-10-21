@@ -25,6 +25,8 @@ public final class ActivePlay {
     public boolean preview;
     /** What the game plans to pay with besides M€ when you press Use (steel, titanium, heat, microbe, floater). */
     public Map<String, Integer> payment = new LinkedHashMap<>();
+    /** Cards whose production box this card copied (Robotic Workforce), once the player has chosen. */
+    public List<String> copied = new ArrayList<>();
 
     public static final class DrawnCard {
         public String name;

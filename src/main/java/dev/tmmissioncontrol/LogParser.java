@@ -1455,7 +1455,31 @@ public final class LogParser {
                 copy.production = new java.util.LinkedHashMap<>(production);
             }
             copier.copied.add(copy);
+            noteCopyInBanner(player, copier, copy);
         }
+        String names = String.join(" and ", copier.copied.stream().map(c -> c.name).toList());
+        for (int i = state.playLog.size() - 1; i >= 0; i--) {
+            LogEntry entry = state.playLog.get(i);
+            if (entry.playerId == player.id && "card".equals(entry.kind) && entry.name.equals(copier.name)) {
+                entry.detail = "copied " + names;
+                break;
+            }
+        }
+    }
+
+    /** The banner is still showing the copier: show what it copied and the production that gave. */
+    private void noteCopyInBanner(PlayerState player, PlayedCard copier, PlayedCard.Copied copy) {
+        ActivePlay play = state.activePlay;
+        if (play == null || play.playerId != player.id || !copier.name.equals(play.cardName)) {
+            return;
+        }
+        play.copied.add(copy.name);
+        copy.production.forEach((k, v) -> {
+            double add = v instanceof Number n ? n.doubleValue() : 0;
+            Object had = play.production.get(k);
+            double base = had instanceof Number n ? n.doubleValue() : 0;
+            play.production.put(k, base + add);
+        });
     }
 
     /** A colony build (ActionType 43) or trade (45): record it, log it and show it in the banner. */
