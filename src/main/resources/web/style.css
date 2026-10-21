@@ -162,9 +162,11 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 .summary.won .sum-headline { color: #d7f0c8; }
 .sum-sub { margin: 2px 0 0; color: var(--muted); }
 .sum-goals { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
-.sum-goal { padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; color: #f0b8a8; font-size: 0.85rem; }
-.sum-goal.done { color: #b9e0a5; }
-.sum-goal strong { color: var(--ink); }
+/* Unfinished parameters stand out in bright red; finished ones stay quiet green. */
+.sum-goal { padding: 3px 10px; border: 1px solid #ff3b30; border-radius: 999px; background: rgba(255, 59, 48, 0.14); color: #ff4d42; font-size: 0.85rem; font-weight: 600; }
+.sum-goal strong { color: #ff4d42; }
+.sum-goal.done { border-color: var(--line); background: none; color: #b9e0a5; font-weight: 400; }
+.sum-goal.done strong { color: var(--ink); }
 .sum-rows { list-style: none; margin: 12px 0 0; padding: 0; }
 .sum-row {
   display: flex;
