@@ -1428,6 +1428,13 @@ function indexChartCards(players) {
   }
 }
 
+/** A catalog placement as words: "ocean" → "ocean tile", "special tile" stays, "2 oceans" → "2 ocean tiles". */
+function placeLabel(k) {
+  const many = String(k).match(/^(\d+) (\w+?)s$/);
+  if (many) return `${many[1]} ${many[2]} tiles`;
+  return /\btiles?$/.test(k) ? k : `${k} tile`;
+}
+
 /**
  * The printed effects the card catalog keeps as data rather than text (Power Plant's "+1 energy production"
  * is only a production value): requirement, gain chips as HTML, and tile placements not already in the gains.
@@ -1443,7 +1450,7 @@ function cardEffects(card) {
   ];
   const resourceKeys = Object.keys(card.resources || {});
   const places = (card.place || []).filter((k) => !resourceKeys.includes(k))
-    .map((k) => `Place ${escapeHtml(k)} tile`);
+    .map((k) => `Place ${escapeHtml(placeLabel(k))}`);
   return { req: formatReq(card.req), gains, places };
 }
 
