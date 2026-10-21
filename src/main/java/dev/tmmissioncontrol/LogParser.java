@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -75,6 +76,8 @@ public final class LogParser {
     /** Game action types whose event dumps list cards leaving the hand by number. */
     private static final int SELL_CARDS = 12;
     private static final int DISCARD_FROM_HAND = 26;
+    /** Robotic Workforce's "copy a production box": ChosenCards is the card copied. */
+    private static final int COPY_PRODUCTION = 21;
     private static final Pattern STAMP = Pattern.compile("^\\[([\\d.,]+)]");
     /** Start of a game-action dump; colony builds and trades are only described inside these. */
     private static final Pattern EVENT_START = Pattern.compile(
@@ -1423,11 +1426,47 @@ public final class LogParser {
         return (quantity > 0 ? "+" : "") + quantity + " " + what;
     }
 
+    /** Note which card a copy-production card copied, on that player's latest such card. */
+    private void recordCopy(ActionEvent e) {
+        if (e.chosenCards.isEmpty() || !seenEvents.add(e.time + "|" + e.actionId)) {
+            return;
+        }
+        PlayerState player = state.player(e.playerId);
+        PlayedCard copier = null;
+        for (PlayedCard c : player.greenCards) {
+            if (c.extra != null && c.extra.toLowerCase(java.util.Locale.ROOT).contains("production box")) {
+                copier = c;
+            }
+        }
+        if (copier == null) {
+            return;
+        }
+        for (int number : e.chosenCards) {
+            // The copied card is one of this player's own; the catalog pads numbers ("086").
+            PlayedCard own = player.cardByNumber(number);
+            Card card = own != null ? null : cards.findByNumber(String.format("%03d", number));
+            if (own == null && card == null) {
+                continue;
+            }
+            PlayedCard.Copied copy = new PlayedCard.Copied();
+            copy.name = own != null ? own.name : card.name;
+            Map<String, Object> production = own != null ? own.production : card.production;
+            if (production != null) {
+                copy.production = new java.util.LinkedHashMap<>(production);
+            }
+            copier.copied.add(copy);
+        }
+    }
+
     /** A colony build (ActionType 43) or trade (45): record it, log it and show it in the banner. */
     private void finishEvent(ActionEvent e) {
         if (e.actionType == SELL_CARDS || e.actionType == DISCARD_FROM_HAND) {
             List<Integer> gone = e.actionType == SELL_CARDS ? e.cards : e.chosenCards;
             state.player(e.playerId).hand.removeIf(c -> gone.contains(c.number));
+            return;
+        }
+        if (e.actionType == COPY_PRODUCTION) {
+            recordCopy(e);
             return;
         }
         if (e.actionType != 43 && e.actionType != 45) {

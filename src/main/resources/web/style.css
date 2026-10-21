@@ -835,6 +835,7 @@ table.cubes .cubes-prod td.na { color: #b89a7c; }
 .card p { margin: 4px 0 0; color: var(--muted); font-size: 0.85rem; }
 .card .card-gains { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 6px; color: var(--ink); }
 .card-places { color: var(--muted); }
+.card-copied-label { color: var(--muted); }
 .token {
   flex: 0 0 auto;
   min-width: 2.15rem;

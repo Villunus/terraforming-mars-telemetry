@@ -27,4 +27,11 @@ public final class PlayedCard {
     public Map<String, Object> req = new LinkedHashMap<>();
     public List<String> place = new ArrayList<>();
     public Integer cost;
+    /** Cards whose production box this card copied (Robotic Workforce, Cyberia Systems), in choice order. */
+    public List<Copied> copied = new ArrayList<>();
+
+    public static final class Copied {
+        public String name;
+        public Map<String, Object> production = new LinkedHashMap<>();
+    }
 }

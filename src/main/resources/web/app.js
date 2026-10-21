@@ -223,6 +223,7 @@ function renderCards(title, cards, cls, generation) {
           ${tokenChip(c)}
         </div>
         ${cardGainsLine(c)}
+        ${copiedLine(c)}
         ${c.extra ? `<p>${extra(c.extra)}</p>` : ""}
       </div>`;
     }).join("")}</div>`;
@@ -240,6 +241,17 @@ function cardGainsLine(card) {
   if (card.printedVp) bits.push(resSym("vp", card.printedVp, false));
   if (!bits.length && !places.length) return "";
   return `<p class="card-gains">${bits.join("")}${places.length ? `<span class="card-places">${places.join(" · ")}</span>` : ""}</p>`;
+}
+
+/** Robotic Workforce and the like: which card's production box was copied, and what that gave. */
+function copiedLine(card) {
+  if (!card.copied || !card.copied.length) return "";
+  return card.copied.map((cp) => {
+    const gains = Object.entries(cp.production || {})
+      .filter(([, v]) => v != null && v !== 0)
+      .map(([k, v]) => resSym(k, v, true)).join("");
+    return `<p class="card-gains card-copied"><span class="card-copied-label">Copied ${escapeHtml(cp.name)}</span>${gains}</p>`;
+  }).join("");
 }
 
 function helpMark() {
