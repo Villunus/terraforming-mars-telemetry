@@ -10,6 +10,8 @@ import java.util.Set;
 public final class GameState {
     private final Object lock = new Object();
     public String gameId = "";
+    /** The game's random seed from the log header; matches the game's own solo History record. */
+    public String gameSeed = "";
     public String board = "Tharsis";
     public int generation = 1;
     public String phase = "Waiting for a match";
@@ -61,6 +63,7 @@ public final class GameState {
             // A game quit partway has no game-end save; keep what we have before it's wiped.
             GameArchive.save(this);
             gameId = "";
+            gameSeed = "";
             board = "Tharsis";
             generation = 1;
             phase = "Setup";
@@ -97,6 +100,7 @@ public final class GameState {
             out.put("urls", urls);
             out.put("firewallOpen", firewallOpen);
             out.put("gameId", gameId);
+            out.put("gameSeed", gameSeed);
             out.put("board", board);
             out.put("colonies", colonies);
             out.put("colonyTiles", colonyTiles.values().stream().map(ColonyTile::toMap).toList());

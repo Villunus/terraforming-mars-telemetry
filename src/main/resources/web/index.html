@@ -23,6 +23,7 @@
       <div class="meta-row">
         <p class="meta" id="meta">Waiting for Player.log…</p>
         <button type="button" class="games-btn" id="games-btn" aria-expanded="false" aria-controls="games-panel">Past games</button>
+        <button type="button" class="games-btn" id="tour-btn" title="A quick walk through each part of the dashboard">Tour</button>
         <button type="button" class="games-btn" id="awake-btn" aria-pressed="false" hidden
           title="Stop this screen dimming or locking while the page is open">Keep screen on</button>
       </div>
@@ -118,6 +119,21 @@
   </section>
 
   <main class="boards" id="boards"></main>
+
+  <div class="tour" id="tour" hidden>
+    <div class="tour-block"></div>
+    <div class="tour-spot" id="tour-spot"></div>
+    <div class="tour-card" id="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+      <p class="tour-step" id="tour-step"></p>
+      <h2 class="tour-title" id="tour-title"></h2>
+      <p class="tour-text" id="tour-text"></p>
+      <div class="tour-nav">
+        <button type="button" class="tour-skip" id="tour-close">End tour</button>
+        <button type="button" class="games-btn" id="tour-back">Back</button>
+        <button type="button" class="tour-next" id="tour-next">Next</button>
+      </div>
+    </div>
+  </div>
 
   <script src="/app.js"></script>
 </body>

@@ -35,6 +35,7 @@ public final class LogParser {
     private static final Pattern PHASE = Pattern.compile("GameSM enters (\\w+)");
     private static final Pattern GAME_ID = Pattern.compile("^GameID: (.+)$");
     private static final Pattern BOARD = Pattern.compile("^BoardType: (.+)$");
+    private static final Pattern GAME_SEED = Pattern.compile("^GameSeed: (-?\\d+)$");
     private static final Pattern PLAYER_HEADER = Pattern.compile("^Player (\\d+)$");
     private static final Pattern AGENT = Pattern.compile("^AgentType: (.+)$");
     private static final Pattern PLAYER_NAME = Pattern.compile("^Name: (.+)$");
@@ -286,6 +287,10 @@ public final class LogParser {
             m = BOARD.matcher(line.trim());
             if (m.matches()) {
                 state.board = m.group(1).trim();
+            }
+            m = GAME_SEED.matcher(line.trim());
+            if (m.matches()) {
+                state.gameSeed = m.group(1);
             }
             m = GLOBAL_SET.matcher(line);
             Matcher header = GLOBAL_HEADER.matcher(line.trim());

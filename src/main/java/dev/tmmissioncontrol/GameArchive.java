@@ -190,18 +190,29 @@ final class GameArchive {
         }
     }
 
-    /** One line per saved game for the picker, newest first. */
-    static List<Map<String, Object>> list() {
-        List<Map<String, Object>> out = new ArrayList<>();
+    /** Every saved game, parsed; unreadable files are skipped. */
+    private static List<JsonObject> all() {
+        List<JsonObject> games = new ArrayList<>();
         try (Stream<Path> files = Files.list(dir())) {
             for (Path file : files.filter(f -> f.toString().endsWith(".json")).toList()) {
                 try {
-                    out.add(summary(JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject()));
+                    games.add(JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject());
                 } catch (Exception ex) {
                     System.err.println("Skipping unreadable saved game " + file.getFileName() + ": " + ex.getMessage());
                 }
             }
         } catch (Exception ignored) {
+        }
+        return games;
+    }
+
+    /** One line per saved game for the picker, newest first; solo games carry the game's own final score. */
+    static List<Map<String, Object>> list() {
+        List<Map<String, Object>> out = new ArrayList<>();
+        List<JsonObject> games = all();
+        for (JsonObject game : games) {
+            SoloHistory.apply(game, games);
+            out.add(summary(game));
         }
         out.sort(Comparator.comparing((Map<String, Object> m) -> String.valueOf(m.get("playedAt"))).reversed());
         return out;
@@ -245,7 +256,7 @@ final class GameArchive {
         return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsString() : "";
     }
 
-    /** The saved snapshot as JSON, or null. */
+    /** The saved snapshot as JSON, or null; a solo game carries the game's own final score when History has it. */
     static byte[] load(String gameId) {
         String id = fileId(gameId);
         if (id.isEmpty()) {
@@ -253,7 +264,14 @@ final class GameArchive {
         }
         try {
             Path file = dir().resolve(id + ".json");
-            return Files.exists(file) ? Files.readAllBytes(file) : null;
+            if (!Files.exists(file)) {
+                return null;
+            }
+            JsonObject game = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
+            if (SoloHistory.solo(game)) {
+                SoloHistory.apply(game, all());
+            }
+            return GSON.toJson(game).getBytes(StandardCharsets.UTF_8);
         } catch (Exception ex) {
             return null;
         }

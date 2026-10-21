@@ -119,8 +119,6 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 .viewing-back:hover { background: #4a360e; }
 @media (max-width: 700px) { .games-row { grid-template-columns: 1fr; } }
 .top-right { display: flex; align-items: center; gap: 14px; }
-/* A phone already has the page open, and the code pushed the header past a phone's width. */
-@media (max-width: 600px) { .qr-col { display: none; } }
 .live { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.08em; }
 .live.on { color: #d7f0c8; border-color: #4d7a3c; }
 .live.bad { color: #f6c4c0; border-color: #a33a32; background: #3a1614; }
@@ -131,6 +129,8 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 .qr { width: 88px; height: 88px; background: #fff; padding: 5px; border-radius: 8px; box-sizing: border-box; }
 .qr-url { font-size: 0.7rem; color: var(--muted); max-width: 110px; text-align: center; word-break: break-all; line-height: 1.2; }
 .qr-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+/* A phone already has the page open, and the code pushed the header past a phone's width. After .qr-col so it wins. */
+@media (max-width: 600px) { .qr-col { display: none; } }
 .qr-wrap.blocked .qr { opacity: 0.3; }
 .phone-blocked { display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: 130px; text-align: center; }
 .phone-blocked[hidden] { display: none; }
@@ -157,6 +157,8 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 }
 .summary.won { background: #1d2a18; border-color: #4d7a3c; }
 .summary.lost { background: #3a1c12; border-color: #8a4a2a; }
+.sum-note { margin: 0 0 10px; padding: 6px 10px; border-left: 3px solid var(--accent); background: rgba(0, 0, 0, 0.18); color: var(--muted); font-size: 0.82rem; line-height: 1.4; }
+.sum-note.official { border-left-color: #4d7a3c; }
 .sum-kicker { margin: 0; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
 .sum-headline { margin: 4px 0 0; font-size: 1.6rem; font-weight: 700; }
 .summary.won .sum-headline { color: #d7f0c8; }
@@ -996,6 +998,12 @@ table.cubes .cubes-prod td.na { color: #b89a7c; }
 .tip:focus-visible > .tip-pop,
 .tip.open > .tip-pop {
   display: block;
+  animation: pop-in 0.16s ease-out;
+}
+/* Popovers rise into place, so it's clear which name they belong to. */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
 }
 .tip-def { display: block; }
 .tip-standings {
@@ -1021,4 +1029,58 @@ table.cubes .cubes-prod td.na { color: #b89a7c; }
   max-width: min(28rem, 92vw);
   white-space: pre-wrap;
   z-index: 50;
+}
+
+/* Tour: a ring around one part of the page, the rest dimmed, and a card explaining it. */
+.tour { position: fixed; inset: 0; z-index: 100; }
+.tour[hidden] { display: none; }
+.tour-block { position: fixed; inset: 0; }
+.tour-spot {
+  position: fixed;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(10, 5, 4, 0.72);
+  pointer-events: none;
+  transition: left 0.2s, top 0.2s, width 0.2s, height 0.2s;
+}
+.tour-spot[hidden] { display: none; }
+/* Docked bottom-right (full width on phones) with the buttons along its bottom edge, so Next never moves. */
+.tour-card {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: min(380px, calc(100vw - 32px));
+  padding: 14px 16px 12px;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+.tour-step { margin: 0; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; }
+.tour-title { margin: 4px 0 0; font-size: 1.15rem; }
+.tour-text { margin: 6px 0 0; color: var(--ink); font-size: 0.92rem; line-height: 1.45; }
+.tour-nav { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.tour-skip { margin-right: auto; padding: 0; background: none; border: 0; color: var(--muted); font: inherit; font-size: 0.85rem; cursor: pointer; }
+.tour-skip:hover { color: var(--ink); }
+.tour-nav .games-btn:disabled { opacity: 0.4; cursor: default; }
+.tour-next {
+  padding: 5px 16px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: #1a0d08;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.tour-next:hover { filter: brightness(1.1); }
+@media (max-width: 599px) {
+  .tour-card { left: 16px; width: auto; }
+}
+
+/* Everything that slides, fades or glides stays still for people who've asked their system for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .tip-pop { animation: none !important; }
+  .tour-spot { transition: none; }
 }

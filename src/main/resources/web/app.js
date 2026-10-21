@@ -1036,6 +1036,7 @@ function render(data) {
   renderSummary(data, players);
   alignBoardSections();
   applyOpenTip();
+  placeTour();
 }
 
 /** Only this PC can raise the Windows admin prompt; a phone that got here doesn't need the button. */
@@ -1191,9 +1192,11 @@ function renderSummary(data, players) {
 
   if (solo) {
     const total = ranked[0].b.total ?? 0;
+    const official = data.official;
     if (g) {
       const misses = SOLO_GOALS.filter((x) => (g[x.key] ?? 0) < x.max);
-      won = misses.length === 0;
+      // The game's own verdict, once it's in History, settles it; until then, all three parameters at max.
+      won = official ? !!official.winner : misses.length === 0;
       headline = won ? "You terraformed Mars — you win!" : "Mars wasn't terraformed in time";
       subline = won
         ? `Final score ${total} VP`
@@ -1203,6 +1206,10 @@ function renderSummary(data, players) {
         const done = v >= x.max;
         return `<span class="sum-goal${done ? " done" : ""}">${done ? "✓" : "✗"} ${x.label} <strong>${v}${x.unit}</strong> / ${x.max}${x.unit}</span>`;
       }).join("")}</div>`;
+    } else if (official) {
+      won = !!official.winner;
+      headline = won ? "You terraformed Mars — you win!" : "Mars wasn't terraformed in time";
+      subline = `Final score ${total} VP`;
     } else {
       headline = "Game over";
       subline = `Final score ${total} VP`;
@@ -1250,7 +1257,15 @@ function renderSummary(data, players) {
 
   const meta = [`Game over after ${data.generation ?? "?"} generations`, data.board].filter(Boolean).join(" · ");
   box.className = "summary" + (won === true ? " won" : won === false ? " lost" : "");
+  // Where the numbers come from: the game's own record for a solo game once it's saved to History,
+  // otherwise our count from the log, which can miss a point or two.
+  const source = solo
+    ? (data.official
+      ? "Final score from the game's own History record."
+      : "Worked out from the game's log. In solo games, the neutral greeneries placed at setup can add city points that the log doesn't show. The game's own score appears here once you leave the game and save it to History.")
+    : "Worked out from the game's log. The game doesn't save final scores for multiplayer games, so its own scoreboard can differ by a point or two.";
   setHtml(box, `
+    <p class="sum-note${data.official ? " official" : ""}">${escapeHtml(source)}</p>
     <p class="sum-kicker">${escapeHtml(meta)}</p>
     <h2 class="sum-headline">${headline}</h2>
     ${subline ? `<p class="sum-sub">${subline}</p>` : ""}
@@ -1711,7 +1726,7 @@ function bindCorpUi() {
         if (cards) cards.hidden = !open;
       });
       alignBoardSections();
-      window.scrollBy(0, section.getBoundingClientRect().top - before);
+      holdInPlace(section, before);
       return;
     }
     const info = ev.target.closest(".corp-info");
@@ -1796,6 +1811,113 @@ function setHtml(el, html) {
   if (!el || el._html === html) return;
   el.innerHTML = html;
   el._html = html;
+}
+
+/**
+ * Sections slide open and shut instead of jumping, so it's clear what just appeared or went away. A watcher
+ * sees every `hidden` change on these parts; a closing one is kept showing while it shrinks, then hidden.
+ */
+const COLLAPSIBLE = ["#banner-details", "#score-details", "#score-cards", "#score-charts", "#games-panel",
+  ".board-body", ".cards", ".corp-rules"].join(",");
+const SLIDE_MS = 240;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const slides = new Set();
+let slidesOff = false;
+let slideObserver = null;
+
+function slideBox(el) {
+  const cs = getComputedStyle(el);
+  return {
+    height: `${el.getBoundingClientRect().height}px`, opacity: cs.opacity,
+    paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, marginTop: cs.marginTop,
+    marginBottom: cs.marginBottom, borderTopWidth: cs.borderTopWidth, borderBottomWidth: cs.borderBottomWidth,
+  };
+}
+
+const SLIDE_SHUT = {
+  height: "0px", opacity: 0, paddingTop: "0px", paddingBottom: "0px", marginTop: "0px", marginBottom: "0px",
+  borderTopWidth: "0px", borderBottomWidth: "0px",
+};
+
+function slide(el, open) {
+  if (!el.isConnected) return;
+  // Turned around mid-slide: carry on from where it is now.
+  const from = el._slide ? slideBox(el) : null;
+  if (el._slide) el._slide.cancel();
+  if (!open) el.hidden = false;
+  const full = slideBox(el);
+  if (parseFloat(full.height) === 0) {
+    if (!open) el.hidden = true;
+    return;
+  }
+  el.style.overflow = "hidden";
+  el.style.boxSizing = "border-box";
+  const anim = el.animate([from || (open ? SLIDE_SHUT : full), open ? full : SLIDE_SHUT],
+    { duration: SLIDE_MS, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+  el._slide = anim;
+  slides.add(anim);
+  const done = () => {
+    slides.delete(anim);
+    if (el._slide !== anim) return;
+    el._slide = null;
+    el.style.overflow = "";
+    el.style.boxSizing = "";
+  };
+  // Where frames aren't drawn (a hidden pane), the animation clock stands still: finish rather than stick.
+  // The finished promise settles even then; the finish event waits for a frame.
+  setTimeout(() => {
+    if (anim.playState === "running") anim.finish();
+  }, SLIDE_MS + 250);
+  anim.finished.then(() => {
+    const current = el._slide === anim;
+    done();
+    if (!current) return;
+    if (!open) {
+      el.hidden = true;
+      slideObserver.takeRecords();
+    }
+    if (el.closest("#boards")) alignBoardSections();
+    placeTour();
+  }, done); // cancelled: a newer slide took over
+}
+
+function startSlides(records) {
+  const before = new Map();
+  for (const r of records) {
+    if (!before.has(r.target)) before.set(r.target, r.oldValue !== null);
+  }
+  for (const [el, wasHidden] of before) {
+    if (wasHidden === el.hidden || !el.matches(COLLAPSIBLE)) continue;
+    if (slidesOff || reduceMotion.matches || !el.animate) {
+      if (el._slide) el._slide.cancel();
+      continue;
+    }
+    slide(el, !el.hidden);
+  }
+  slideObserver.takeRecords(); // the un-hide and re-hide a closing slide does itself
+}
+
+function bindSlides() {
+  slideObserver = new MutationObserver(startSlides);
+  slideObserver.observe(document.body, {
+    subtree: true, attributes: true, attributeFilter: ["hidden"], attributeOldValue: true,
+  });
+}
+
+/** Resolves once every section that's sliding has finished, including ones opened or shut just now. */
+function slidesSettled() {
+  if (slideObserver) startSlides(slideObserver.takeRecords());
+  return Promise.allSettled([...slides].map((a) => a.finished));
+}
+
+/** Keep an element where it is on screen while sections above it slide (stacked boards). */
+function holdInPlace(el, top) {
+  const until = performance.now() + SLIDE_MS + 60;
+  const step = () => {
+    window.scrollBy(0, el.getBoundingClientRect().top - top);
+    if (performance.now() < until) requestAnimationFrame(step);
+  };
+  step();
 }
 
 /**
@@ -1964,6 +2086,272 @@ function bindGamesUi() {
   $("viewing-back").addEventListener("click", backToLive);
 }
 
+/**
+ * The tour: one step per part of the page. A step can open what it describes (the game log, the score
+ * breakdown, the charts) and hold a card or tag popover open to show what hovering does. Steps for parts
+ * this game doesn't show are left out, and the page goes back to how it was when the tour ends.
+ */
+const TOUR_STEPS = [
+  { sel: "header.top", title: "Welcome",
+    text: "Telemetry reads the game's own log on this PC and updates as you play. This tour uses a finished sample game to show each part of the dashboard; your own game comes back when it ends." },
+  { sel: "#summary", title: "Game over",
+    text: "When a game ends: who won and by how much, and each player's final score and highlights. In a solo game, whether you terraformed Mars in time, with any parameter that fell short in red." },
+  { sel: "#banner", title: "Card in flight",
+    text: "The card being played right now: its cost, tags and what it gives, the tile it places, and reminders for placing it. Tap it to open the game log." },
+  { sel: () => [$("game-log").querySelector(".log-filters"), $("game-log").querySelector(".log-gen"),
+    ...[...$("game-log").querySelectorAll(".log-entry")].slice(0, 6)], view: { banner: true }, title: "Game log",
+    text: "Every move so far, newest first and grouped by generation: cards played, standard projects, actions, conversions, milestones and awards. The buttons at the top show one player's moves." },
+  { sel: "#game-log .log-entry .card-ref", tip: true, view: { banner: true }, title: "Card details",
+    text: "Hover over any underlined card name, or tap it on a phone, to see the whole card: cost, tags, requirement, what it gives and its text. This works in the log, the score breakdown, the charts and tag lists." },
+  { sel: "#scoreboard", view: { score: true }, title: "Score",
+    text: "What each player would score if the game ended now, by TR, milestones, awards, greeneries, cities and cards. Tap Cards + tokens to see the VP each card is worth." },
+  { sel: "#score-chart-panel", view: { charts: true }, title: "Charts",
+    text: "How each player's score has grown by generation. The buttons switch to TR, or to the production or quantity of any resource." },
+  { sel: "#score-gen", view: { charts: true, gen: "last" }, title: "What moved",
+    text: "Tap a generation on the chart to see what changed in it: which cards, tiles, milestones and awards gained each player VP that generation." },
+  { sel: "#milestone-panel", title: "Milestones and awards",
+    text: "Claimed milestones and funded awards, with who leads each award. Claim now lists milestones you qualify for; One away lists the ones you're a step from." },
+  { sel: ".board .board-head", title: "Player boards",
+    text: "One board per player, you first. Tap the corporation's name for its rules, and the arrow to fold a board away." },
+  { sel: ".board .board-cubes", title: "Resources",
+    text: "Icons on top, production on the brown band, and what's on hand underneath. TR comes first because it's added to M€ income each generation." },
+  { sel: () => [...document.querySelectorAll(".board .board-tags .tip[data-tip-key]")]
+    .find((t) => t.querySelector(".tag-list")), tip: true, title: "Tags",
+    text: "Each player's tag counts. Hover over or tap a tag to list the cards that gave it." },
+  { sel: ".board .board-hand .cards-title", title: "Your hand",
+    text: "The cards in your hand, with their cost, tags and what they give. Only your own hand is known. Tap a section's header to fold it on every board." },
+  { sel: ".board .board-blues", title: "Played cards",
+    text: "Blue cards with actions come first and dim once their action is used this generation. Automated cards and events follow, with any animals, microbes or other tokens on them." },
+  { sel: "#games-btn", title: "Past games",
+    text: "Each game is saved at the end of every generation. Open one to see its boards, log and final score again." },
+  { sel: "#awake-btn", title: "Keep screen on",
+    text: "Stops a phone or tablet dimming or locking while the dashboard is open." },
+  { sel: ".qr-col", title: "Follow on your phone",
+    text: "Scan this with a phone or tablet on the same Wi-Fi to open the dashboard there." },
+];
+let tourSteps = [];
+let tourIndex = 0;
+let tourSaved = null;
+/** A finished two-player game bundled with the app, so every step has something to show. */
+let tourSample = null;
+
+/** The step's parts that are on the page right now; empty when there's nothing to show. */
+function tourElements(step) {
+  const found = typeof step.sel === "function" ? step.sel() : document.querySelector(step.sel);
+  return [].concat(found || []).filter((el) => {
+    if (!el || el.closest("[hidden]")) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  });
+}
+
+/** Open or close the log, score breakdown and charts for a step, and hold its popover open. */
+function setTourView(view = {}) {
+  bannerOpen = !!view.banner;
+  applyBannerOpen();
+  scoreOpen = !!(view.score || view.charts);
+  chartsOpen = !!view.charts;
+  cardsOpen = false;
+  $("score-details").hidden = !scoreOpen;
+  $("score-cards").hidden = true;
+  $("score-charts").hidden = !chartsOpen;
+  $("score-chart-toggle").setAttribute("aria-expanded", chartsOpen ? "true" : "false");
+  $("score-toggle").setAttribute("aria-expanded", scoreOpen ? "true" : "false");
+  const history = lastScoreData?.score?.history || [];
+  const past = history.filter((pt) => !pt.now);
+  const gen = view.gen === "last" ? past[past.length - 1]?.generation ?? null : null;
+  if (chartsOpen && lastScoreData && (gen !== selectedGen || view.gen)) {
+    selectedGen = gen;
+    renderScoreCharts(lastScoreData, lastScorePlayers, history, /endgame/i.test(lastScoreData.phase || ""));
+  }
+  openTipKey = null;
+  applyOpenTip();
+}
+
+function showTourTip(step) {
+  if (!step.tip) return;
+  const tip = tourElements(step)[0];
+  if (!tip || !tip.dataset.tipKey) return;
+  openTipKey = tip.dataset.tipKey;
+  applyOpenTip();
+}
+
+async function startTour() {
+  try {
+    tourSample = tourSample || await (await fetch("/sample-game.json", { cache: "no-store" })).json();
+  } catch {
+    tourSample = null; // no sample: tour whatever game is on screen
+  }
+  tourSaved = { bannerOpen, scoreOpen, cardsOpen, chartsOpen, selectedGen, openTipKey, logFilter, lastGameId,
+    viewing: viewingGame, viewingBar: !$("viewing-bar").hidden };
+  // Swap in the sample and probe which steps have something to show without anything sliding.
+  slidesOff = true;
+  if (tourSample) {
+    viewingGame = tourSample; // stops live polls redrawing the page under the tour
+    $("viewing-bar").hidden = true;
+    toggleGamesPanel(false);
+    render(tourSample);
+  }
+  tourSteps = TOUR_STEPS.filter((step) => {
+    setTourView(step.view);
+    return tourElements(step).length > 0;
+  });
+  setTourView({});
+  slideObserver?.takeRecords();
+  slidesOff = false;
+  if (!tourSteps.length) {
+    endTour();
+    return;
+  }
+  tourIndex = 0;
+  $("tour").hidden = false;
+  showTourStep();
+  $("tour-next").focus();
+}
+
+function endTour() {
+  $("tour").hidden = true;
+  const saved = tourSaved;
+  tourSaved = null;
+  tourSeq++;
+  if (saved) {
+    ({ bannerOpen, scoreOpen, cardsOpen, chartsOpen, selectedGen, openTipKey, logFilter } = saved);
+    if (tourSample) {
+      // Back to the game that was on screen; the same game id keeps its log filter and chosen generation.
+      viewingGame = saved.viewing;
+      $("viewing-bar").hidden = !saved.viewingBar;
+      lastGameId = saved.lastGameId;
+      lastStateText = "";
+      if (viewingGame) render(viewingGame);
+      else tick();
+    } else if (lastStateData) {
+      render(lastStateData);
+    }
+    applyBannerOpen();
+  }
+  $("tour-btn").focus();
+}
+
+/** The area to ring: the step's parts, plus any popover it holds open so that isn't dimmed. */
+function tourRect(step) {
+  const rects = tourElements(step).map((el) => el.getBoundingClientRect());
+  const pop = step.tip && document.querySelector(".tip.open > .tip-pop");
+  if (pop) rects.push(pop.getBoundingClientRect());
+  if (!rects.length) return null;
+  return {
+    left: Math.min(...rects.map((r) => r.left)), top: Math.min(...rects.map((r) => r.top)),
+    right: Math.max(...rects.map((r) => r.right)), bottom: Math.max(...rects.map((r) => r.bottom)),
+  };
+}
+
+let tourSeq = 0;
+
+/** Show a step: its sections slide open or shut first, then the page glides to it and the ring follows. */
+async function showTourStep() {
+  const seq = ++tourSeq;
+  const step = tourSteps[tourIndex];
+  const last = tourIndex === tourSteps.length - 1;
+  $("tour-step").textContent = `${tourIndex + 1} of ${tourSteps.length}`;
+  $("tour-title").textContent = step.title;
+  $("tour-text").textContent = step.text;
+  $("tour-back").disabled = tourIndex === 0;
+  $("tour-next").textContent = last ? "Done" : "Next";
+  if (!reduceMotion.matches) {
+    for (const id of ["tour-step", "tour-title", "tour-text"]) {
+      $(id).animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }],
+        { duration: 220, easing: "ease-out" });
+    }
+  }
+  window.scrollTo({ top: scrollY, behavior: "instant" }); // stop the last step's glide where it is
+  setTourView(step.view);
+  await slidesSettled();
+  if (seq !== tourSeq) return;
+  // Open its popover, then bring the part into the space above the docked card. A part too tall for that
+  // goes to the top and the card sits over its lower edge.
+  showTourTip(step);
+  await glide(tourScrollTarget(step));
+  if (seq !== tourSeq) return;
+  // Anything that moved under the glide (a re-render, a late slide) gets a last instant nudge.
+  window.scrollTo({ top: tourScrollTarget(step), behavior: "instant" });
+  showTourTip(step); // re-place the popover now it has moved: it flips below when there's no room above
+  placeTour();
+}
+
+/** The page scroll position that puts the step's part in the space above the docked card. */
+function tourScrollTarget(step) {
+  const r = tourRect(step);
+  if (!r) return scrollY;
+  const height = r.bottom - r.top;
+  const room = innerHeight - $("tour-card").offsetHeight - 40;
+  const y = height > room ? r.top - 16 : r.top - Math.max(16, (room - height) / 2);
+  return Math.max(0, scrollY + y);
+}
+
+/** Scroll to `top`, smoothly unless motion is reduced; resolves when the scroll has stopped. */
+function glide(top) {
+  if (Math.abs(top - scrollY) < 2 || reduceMotion.matches) {
+    window.scrollTo({ top, behavior: "instant" });
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const finish = () => {
+      window.removeEventListener("scrollend", finish);
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(finish, 900); // browsers without scrollend
+    window.addEventListener("scrollend", finish);
+    window.scrollTo({ top, behavior: "smooth" });
+  });
+}
+
+/** Ring the step's part; runs again whenever the page re-renders or scrolls. The card stays docked (CSS). */
+function placeTour() {
+  if ($("tour").hidden) return;
+  const step = tourSteps[tourIndex];
+  const r = step && tourRect(step);
+  const spot = $("tour-spot");
+  spot.hidden = !r;
+  if (!r) return;
+  const pad = 6;
+  const top = Math.max(r.top - pad, 4);
+  const bottom = Math.min(r.bottom + pad, innerHeight - 4);
+  Object.assign(spot.style, {
+    left: `${r.left - pad}px`, top: `${top}px`,
+    width: `${r.right - r.left + pad * 2}px`, height: `${Math.max(bottom - top, 0)}px`,
+  });
+}
+
+function moveTour(delta) {
+  const next = tourIndex + delta;
+  if (next < 0) return;
+  if (next >= tourSteps.length) {
+    endTour();
+    return;
+  }
+  tourIndex = next;
+  showTourStep();
+}
+
+function bindTourUi() {
+  $("tour-btn").addEventListener("click", (ev) => {
+    ev.stopPropagation(); // the page's click handler would close a popover the tour just opened
+    startTour();
+  });
+  $("tour").addEventListener("click", (ev) => ev.stopPropagation());
+  $("tour-next").addEventListener("click", () => moveTour(1));
+  $("tour-back").addEventListener("click", () => moveTour(-1));
+  $("tour-close").addEventListener("click", endTour);
+  document.addEventListener("keydown", (ev) => {
+    if ($("tour").hidden) return;
+    if (ev.key === "Escape") endTour();
+    else if (ev.key === "ArrowRight") moveTour(1);
+    else if (ev.key === "ArrowLeft") moveTour(-1);
+  });
+  window.addEventListener("resize", placeTour);
+  window.addEventListener("scroll", placeTour, { passive: true });
+}
+
 async function tick() {
   if (viewingGame) return;
   try {
@@ -1995,6 +2383,8 @@ bindTipUi();
 bindPhoneAccessUi();
 bindGamesUi();
 bindWakeUi();
+bindTourUi();
+bindSlides();
 fitWordmark();
 document.fonts?.ready.then(fitWordmark);
 window.addEventListener("resize", fitWordmark);

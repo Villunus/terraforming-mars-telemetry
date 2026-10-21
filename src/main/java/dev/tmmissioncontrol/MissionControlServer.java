@@ -429,7 +429,11 @@ public final class MissionControlServer {
             exchange.sendResponseHeaders(405, -1);
             return;
         }
-        byte[] body = gson.toJson(state.snapshot()).getBytes(StandardCharsets.UTF_8);
+        com.google.gson.JsonElement snapshot = gson.toJsonTree(state.snapshot());
+        if (snapshot.isJsonObject()) {
+            SoloHistory.apply(snapshot.getAsJsonObject());
+        }
+        byte[] body = gson.toJson(snapshot).getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
         exchange.getResponseHeaders().add("Cache-Control", "no-store");
         exchange.sendResponseHeaders(200, body.length);
@@ -644,6 +648,9 @@ public final class MissionControlServer {
         }
         if (path.endsWith(".png")) {
             return "image/png";
+        }
+        if (path.endsWith(".json")) {
+            return "application/json; charset=utf-8";
         }
         return "text/html; charset=utf-8";
     }
