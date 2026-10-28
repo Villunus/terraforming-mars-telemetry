@@ -27,12 +27,12 @@ public final class PlayerState {
     public int energy;
     public int heat;
 
-    public int megaCreditProd = 1;
-    public int steelProd = 1;
-    public int titaniumProd = 1;
-    public int plantProd = 1;
-    public int energyProd = 1;
-    public int heatProd = 1;
+    public int megaCreditProd;
+    public int steelProd;
+    public int titaniumProd;
+    public int plantProd;
+    public int energyProd;
+    public int heatProd;
 
     public int citiesOnMars;
     public int cities;

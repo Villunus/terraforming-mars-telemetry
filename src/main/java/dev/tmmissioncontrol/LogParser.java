@@ -123,6 +123,13 @@ public final class LogParser {
     private final java.util.Map<String, Integer> pendingPayment = new java.util.LinkedHashMap<>();
     /** Each action is dumped more than once; its Time stamp tells repeats apart. */
     private final java.util.Set<String> seenEvents = new java.util.HashSet<>();
+    /** Losses an action aimed at another seat, waiting for their resource line. */
+    private final List<ActionEvent.Sub> targetedLosses = new ArrayList<>();
+    private final java.util.Set<String> seenTargetedLosses = new java.util.HashSet<>();
+    /** Between "Begin Game" and "Created new Game": 1 once the setup production lines appear; -1 otherwise. */
+    private int setupProduction = -1;
+    /** Starting TR ("from 0 to 14" solo, 20 otherwise), logged just before "Created new Game" resets the players. */
+    private final Map<Integer, Integer> setupTr = new java.util.HashMap<>();
 
     public LogParser(CardDatabase cards, GameState state) {
         this.cards = cards;
@@ -141,6 +148,7 @@ public final class LogParser {
                     consume(line);
                 } else {
                     noteClock(line); // the launch-time anchor usually comes before the game starts
+                    noteSetupProduction(line);
                 }
             }
         }
@@ -161,14 +169,35 @@ public final class LogParser {
         return last;
     }
 
+    /** The standard game's "production from 0 to 1" lines come after "Begin Game" but before "Created new Game". */
+    void noteSetupProduction(String line) {
+        if (line.contains("[INFO] Begin Game")) {
+            setupProduction = 0;
+            setupTr.clear();
+        } else if (line.contains("Set terraforming rating")) {
+            Matcher m = TR.matcher(line);
+            if (m.find() && Integer.parseInt(m.group(2)) == 0) {
+                setupTr.put(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(3)));
+            }
+        } else if (setupProduction == 0 && line.contains("production from 0 to 1")) {
+            setupProduction = 1;
+        }
+    }
+
     public void consume(String line) {
         if (line == null || line.isBlank()) {
             return;
         }
         synchronized (state.lock()) {
             noteClock(line);
+            noteSetupProduction(line);
             if (line.contains("Created new Game")) {
+                // Before reset(), which seats players 1 and 2.
+                state.startingProduction = Math.max(setupProduction, 0);
+                setupProduction = -1;
                 state.reset();
+                setupTr.forEach((id, tr) -> state.player(id).tr = tr);
+                setupTr.clear();
                 state.createdElapsed = elapsedOf(line);
                 applyStartTime();
                 currentPlayer = 1;
@@ -190,6 +219,8 @@ public final class LogParser {
                 steamCorps.clear();
                 pendingEvent = null;
                 seenEvents.clear();
+                targetedLosses.clear();
+                seenTargetedLosses.clear();
                 return;
             }
             parseHeader(line);
@@ -318,6 +349,8 @@ public final class LogParser {
                 state.phase = humanPhase(gamePhase);
                 resourcePlayer = 0;
                 productionBlockPlayer = 0;
+                // A loss whose line never came (the target had none to lose) mustn't claim a later one.
+                targetedLosses.clear();
                 if (state.phase.toLowerCase().contains("endgame")) {
                     state.recordGenerationEnd();
                 }
@@ -602,8 +635,11 @@ public final class LogParser {
 
     private void applyResource(String kind, String qtyOrProd, int from, int to) {
         boolean production = "production".equals(qtyOrProd);
-        PlayerState target;
-        if (pendingCorpPlayer > 0 && !production && "MegaCredit".equals(kind) && from == 0
+        ActionEvent.Sub loss = takeTargetedLoss(kind, production, from, to);
+        PlayerState target = loss == null ? null : state.player(loss.targetPlayerId);
+        if (target != null) {
+            // Taken from another seat by the acting player's card.
+        } else if (pendingCorpPlayer > 0 && !production && "MegaCredit".equals(kind) && from == 0
                 && "Unknown".equals(state.player(pendingCorpPlayer).corporation)) {
             target = state.player(pendingCorpPlayer);
         } else if (resourcePlayer > 0) {
@@ -635,7 +671,8 @@ public final class LogParser {
         // Every seat starts with production set 0 → 1 before the game begins; that isn't a cause.
         boolean initialSet = from == 0 && "Setup".equals(state.phase);
         if (production && to != from && !initialSet && !productionPhase()) {
-            state.addScoreEvent(target.id, "prod-" + prodKey(kind), causeFor(target), to - from);
+            String cause = loss != null && loss.cause != null ? loss.cause : causeFor(target);
+            state.addScoreEvent(target.id, "prod-" + prodKey(kind), cause, to - from);
         }
     }
 
@@ -1487,8 +1524,56 @@ public final class LogParser {
         });
     }
 
+    /**
+     * Birds, Asteroid and the like take from another seat ("TargetPlayerLocalID"), yet the resource line
+     * that follows comes after "Player 2 Play for player 2". Remember each such loss so it lands on the target.
+     */
+    private void noteTargetedLosses(ActionEvent e) {
+        for (ActionEvent.Sub sub : e.subs) {
+            if (sub.targetPlayerId <= 0 || sub.targetPlayerId == sub.playerId || sub.quantity >= 0
+                    || resourceKind(sub.resourceType) == null) {
+                continue;
+            }
+            // The same sub-action is dumped under several parent events; its own Time names it.
+            if (seenTargetedLosses.add(sub.time + "|" + sub.targetPlayerId + "|" + sub.resourceType)) {
+                Card card = e.cards.isEmpty() ? null : cards.findByNumber(String.format("%03d", e.cards.get(0)));
+                if (card != null) {
+                    sub.cause = card.name + " (" + state.player(sub.playerId).displayName() + ")";
+                }
+                targetedLosses.add(sub);
+            }
+        }
+    }
+
+    /** The pending targeted loss this resource line is, if any; it's used up. */
+    private ActionEvent.Sub takeTargetedLoss(String kind, boolean production, int from, int to) {
+        for (java.util.Iterator<ActionEvent.Sub> it = targetedLosses.iterator(); it.hasNext(); ) {
+            ActionEvent.Sub sub = it.next();
+            if (kind.equals(resourceKind(sub.resourceType)) && sub.production == production
+                    && to - from == sub.quantity) {
+                it.remove();
+                return sub;
+            }
+        }
+        return null;
+    }
+
+    /** The PlayerResources name for an event dump's resource flag. */
+    private static String resourceKind(int type) {
+        return switch (type) {
+            case 1 -> "MegaCredit";
+            case 2 -> "Steel";
+            case 4 -> "Titanium";
+            case 8 -> "Plant";
+            case 16 -> "Energy";
+            case 32 -> "Heat";
+            default -> null;
+        };
+    }
+
     /** A colony build (ActionType 43) or trade (45): record it, log it and show it in the banner. */
     private void finishEvent(ActionEvent e) {
+        noteTargetedLosses(e);
         if (e.actionType == SELL_CARDS || e.actionType == DISCARD_FROM_HAND) {
             List<Integer> gone = e.actionType == SELL_CARDS ? e.cards : e.chosenCards;
             state.player(e.playerId).hand.removeIf(c -> gone.contains(c.number));
@@ -1565,6 +1650,10 @@ public final class LogParser {
         static final class Sub {
             final int depth;
             final int playerId;
+            int targetPlayerId;
+            String time = "";
+            /** For a targeted loss: the card that caused it, as the score breakdown names it. */
+            String cause;
             int actionType = -1;
             int resourceType = -1;
             int quantity;
@@ -1643,6 +1732,8 @@ public final class LogParser {
             }
             switch (key) {
                 case "ActionType" -> sub.actionType = intOr(value, -1);
+                case "TargetPlayerLocalID" -> sub.targetPlayerId = intOr(value, 0);
+                case "Time" -> sub.time = value;
                 case "ResourceType" -> sub.resourceType = intOr(value, -1);
                 case "IsProdResource" -> sub.production = "True".equals(value);
                 case "Quantity" -> sub.quantity = intOr(value, 0);

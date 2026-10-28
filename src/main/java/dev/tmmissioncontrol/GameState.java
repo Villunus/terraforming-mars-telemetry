@@ -49,13 +49,24 @@ public final class GameState {
     public double createdElapsed = -1;
     /** When the game started, in epoch millis, once the log's launch time is known; -1 until then. */
     public long startedAtMs = -1;
+    /** Production every seat starts with: 1 in the standard game, 0 in Corporate Era (and solo). */
+    public int startingProduction;
 
     public ColonyTile colonyTile(String name) {
         return colonyTiles.computeIfAbsent(name, ColonyTile::new);
     }
 
     public PlayerState player(int id) {
-        return players.computeIfAbsent(id, PlayerState::new);
+        return players.computeIfAbsent(id, key -> {
+            PlayerState p = new PlayerState(key);
+            p.megaCreditProd = startingProduction;
+            p.steelProd = startingProduction;
+            p.titaniumProd = startingProduction;
+            p.plantProd = startingProduction;
+            p.energyProd = startingProduction;
+            p.heatProd = startingProduction;
+            return p;
+        });
     }
 
     public void reset() {

@@ -135,6 +135,7 @@ final class GameArchive {
         GameState game = null;
         LogParser parser = null;
         long launch = -1; // chat clock lines before a game give its start time
+        List<String> sinceBegin = new ArrayList<>(); // setup lines between "Begin Game" and "Created new Game"
         // InputStreamReader replaces bad bytes instead of failing like Files.newBufferedReader would.
         try (var reader = new java.io.BufferedReader(
                 new java.io.InputStreamReader(Files.newInputStream(file), StandardCharsets.UTF_8))) {
@@ -144,11 +145,18 @@ final class GameArchive {
                 if (seen > 0) {
                     launch = seen;
                 }
+                if (line.contains("[INFO] Begin Game")) {
+                    sinceBegin.clear();
+                }
+                if (sinceBegin.size() < 100) {
+                    sinceBegin.add(line);
+                }
                 if (line.contains("Created new Game")) {
                     game = new GameState();
                     game.autoSave = false;
                     parser = new LogParser(cards, game);
                     parser.launchEpochMs = launch;
+                    sinceBegin.forEach(parser::noteSetupProduction);
                     games.add(game);
                 }
                 if (parser != null) {
