@@ -1168,11 +1168,16 @@ function bestVpCard(b) {
   return best && best.vp > 0 ? best : null;
 }
 
-/** Shown once the game is over: who won (or whether you beat Mars solo), final scores and highlights. */
+/**
+ * Shown from the moment Mars is terraformed (it keeps updating while play goes on) and once the game is over:
+ * who won (or whether you beat Mars solo), scores and highlights.
+ */
 function renderSummary(data, players) {
   const box = $("summary");
   const ended = /endgame/i.test(data.phase || "");
-  if (!ended || !players.length || !data.score) {
+  const g = data.globals;
+  const terraformed = !!g && SOLO_GOALS.every((x) => (g[x.key] ?? 0) >= x.max);
+  if ((!ended && !terraformed) || !players.length || !data.score) {
     box.hidden = true;
     return;
   }
@@ -1184,13 +1189,29 @@ function renderSummary(data, players) {
       || a.p.id - c.p.id);
   const nameOf = (p) => escapeHtml(displayName(p, "P" + p.id));
   const solo = ranked.length === 1;
-  const g = data.globals;
   let won = null;
   let headline;
   let subline = "";
   let goals = "";
 
-  if (solo) {
+  if (!ended) {
+    // Terraformed, still playing. Solo is won now (parameters never go back down) but play goes on to the
+    // last generation; multiplayer ends after this generation, so show who's ahead.
+    const total = ranked[0].b.total ?? 0;
+    if (solo) {
+      won = true;
+      headline = "You terraformed Mars — you win!";
+      subline = `Score so far ${total} VP · play goes on to the last generation`;
+    } else {
+      const [first, second] = ranked;
+      const fv = first.b.total ?? 0;
+      const sv = second.b.total ?? 0;
+      headline = "Mars is terraformed";
+      subline = fv === sv
+        ? `Tied at ${fv} VP · the game ends after this generation`
+        : `${first.p.human ? "You lead" : `${nameOf(first.p)} leads`} by ${fv - sv} VP · the game ends after this generation`;
+    }
+  } else if (solo) {
     const total = ranked[0].b.total ?? 0;
     const official = data.official;
     if (g) {
@@ -1255,11 +1276,14 @@ function renderSummary(data, players) {
       </li>`;
   }).join("");
 
-  const meta = [`Game over after ${data.generation ?? "?"} generations`, data.board].filter(Boolean).join(" · ");
+  const meta = [ended ? `Game over after ${data.generation ?? "?"} generations` : `Generation ${data.generation ?? "?"}`,
+    data.board].filter(Boolean).join(" · ");
   box.className = "summary" + (won === true ? " won" : won === false ? " lost" : "");
   // Where the numbers come from: the game's own record for a solo game once it's saved to History,
   // otherwise our count from the log, which can miss a point or two.
-  const source = solo
+  const source = !ended
+    ? "Scores so far, worked out from the game's log. They update as you play."
+    : solo
     ? (data.official
       ? "Final score from the game's own History record."
       : "Worked out from the game's log. In solo games, the neutral greeneries placed at setup can add city points that the log doesn't show. The game's own score appears here once you leave the game and save it to History.")
@@ -1804,6 +1828,8 @@ function bindScoreUi() {
 }
 
 let lastStateText = "";
+/** The server's start stamp from the first poll; a different one means it restarted. */
+let serverStarted = null;
 let lastLive = false;
 
 /** Replace an element's HTML only when it changed, so a click in progress isn't lost to a no-op rebuild. */
@@ -2095,7 +2121,7 @@ const TOUR_STEPS = [
   { sel: "header.top", title: "Welcome",
     text: "Telemetry reads the game's own log on this PC and updates as you play. This tour uses a finished sample game to show each part of the dashboard; your own game comes back when it ends." },
   { sel: "#summary", title: "Game over",
-    text: "When a game ends: who won and by how much, and each player's final score and highlights. In a solo game, whether you terraformed Mars in time, with any parameter that fell short in red." },
+    text: "Appears as soon as Mars is terraformed and keeps updating until the game ends. Then it shows who won and by how much, and each player's final score and highlights. In a solo game, whether you terraformed Mars in time, with any parameter that fell short in red." },
   { sel: "#banner", title: "Card in flight",
     text: "The card being played right now: its cost, tags and what it gives, the tile it places, and reminders for placing it. Tap it to open the game log." },
   { sel: () => [$("game-log").querySelector(".log-filters"), $("game-log").querySelector(".log-gen"),
@@ -2357,6 +2383,13 @@ async function tick() {
   try {
     const res = await fetch("/api/state", { cache: "no-store" });
     if (!res.ok) throw new Error(res.status);
+    // A restarted server may be a new build; reload so this page runs its code, not the old one.
+    const started = res.headers.get("X-Server-Started");
+    if (started && serverStarted && started !== serverStarted) {
+      location.reload();
+      return;
+    }
+    serverStarted = started || serverStarted;
     const text = await res.text();
     if (viewingGame) return; // a past game was opened while this poll was in flight
     // Rebuilding the DOM between mousedown and mouseup swallows the click, so skip identical polls.

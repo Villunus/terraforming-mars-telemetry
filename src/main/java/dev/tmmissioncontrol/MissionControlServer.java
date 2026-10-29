@@ -41,6 +41,7 @@ import javax.net.ssl.SSLParameters;
 
 public final class MissionControlServer {
     private final GameState state;
+    private static final String SERVER_STARTED = Long.toString(System.currentTimeMillis());
     private final Gson gson = new GsonBuilder().serializeNulls().create();
     private final int port;
     private final String forcedHost;
@@ -436,6 +437,8 @@ public final class MissionControlServer {
         byte[] body = gson.toJson(snapshot).getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
         exchange.getResponseHeaders().add("Cache-Control", "no-store");
+        // Open pages reload when this changes, so they pick up a new build's page code.
+        exchange.getResponseHeaders().add("X-Server-Started", SERVER_STARTED);
         exchange.sendResponseHeaders(200, body.length);
         try (OutputStream out = exchange.getResponseBody()) {
             out.write(body);
