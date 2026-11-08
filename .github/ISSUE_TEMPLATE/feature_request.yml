@@ -1,0 +1,12 @@
+name: Feature request
+description: An idea for something the dashboard could show or do.
+labels: [enhancement]
+assignees: [Villunus]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: A sentence is fine. If it would help during a game, say when (your turn, end of a generation…).
+    validations:
+      required: true

@@ -8,8 +8,9 @@ body:
     attributes:
       label: What went wrong?
       description: |
-        A sentence is fine. If you came from **Report a bug** in the app, drag the `telemetry-diagnostics` zip
-        from your Downloads folder into this box. Player names are removed from it, but your own hand is included.
+        A sentence is fine. If you came from **Report a bug** in the app, click **Copy** in the small window it
+        opened, then click in this box and press Ctrl+V to attach the diagnostics. Player names are removed from
+        them, but your own hand is included.
     validations:
       required: true
   - type: input

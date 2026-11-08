@@ -412,23 +412,34 @@ public final class MissionControlServer {
         exchange.close();
     }
 
-    /** The diagnostics zip. Local only: it holds the raw log, your own hand included. */
+    /**
+     * Save the diagnostics zip to Downloads and show the window with its Copy button, as the tray's Report a bug
+     * does. Local only: it holds the raw log, your own hand included.
+     */
     private void diagnostics(HttpExchange exchange) throws IOException {
         InetAddress remote = exchange.getRemoteAddress() == null ? null : exchange.getRemoteAddress().getAddress();
         if (remote == null || !remote.isLoopbackAddress()) {
             exchange.sendResponseHeaders(403, -1);
             return;
         }
-        if (!"GET".equals(exchange.getRequestMethod())) {
+        if (!"POST".equals(exchange.getRequestMethod())) {
             exchange.sendResponseHeaders(405, -1);
             return;
         }
-        exchange.getResponseHeaders().add("Content-Type", "application/zip");
-        exchange.getResponseHeaders().add("Content-Disposition", "attachment; filename=\"" + BugReport.fileName() + "\"");
-        exchange.getResponseHeaders().add("Cache-Control", "no-store");
-        exchange.sendResponseHeaders(200, 0);
+        BugReportWindow.PageClick click = null;
+        try {
+            click = gson.fromJson(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8),
+                    BugReportWindow.PageClick.class);
+        } catch (RuntimeException ignored) {
+        }
+        BugReportWindow.Anchor anchor = BugReportWindow.anchor(click);
+        Path zip = BugReport.saveToDownloads();
+        BugReportWindow.show(zip, anchor);
+        byte[] body = gson.toJson(java.util.Map.of("file", zip.toString())).getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
+        exchange.sendResponseHeaders(200, body.length);
         try (OutputStream out = exchange.getResponseBody()) {
-            BugReport.write(out);
+            out.write(body);
         }
     }
 

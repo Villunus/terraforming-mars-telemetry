@@ -1082,14 +1082,12 @@ function bindPhoneAccessUi() {
 function bindBugReportUi() {
   const btn = $("bug-btn");
   if (onThisPc()) btn.title = "Save a diagnostics zip and open the bug report form on GitHub";
-  btn.addEventListener("click", () => {
+  btn.addEventListener("click", (ev) => {
+    // The link itself opens the form. The app saves the zip and shows its Copy window; where the click sat in
+    // the page lets it put that window against the browser's right edge.
     if (!onThisPc()) return;
-    const save = document.createElement("a");
-    save.href = "/api/diagnostics";
-    save.download = "";
-    document.body.append(save);
-    save.click();
-    save.remove();
+    const click = { x: ev.clientX, y: ev.clientY, width: window.innerWidth, dpr: window.devicePixelRatio || 1 };
+    fetch("/api/diagnostics", { method: "POST", body: JSON.stringify(click) }).catch(() => {});
   });
 }
 

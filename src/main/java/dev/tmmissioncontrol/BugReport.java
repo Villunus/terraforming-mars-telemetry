@@ -46,11 +46,15 @@ final class BugReport {
         return "telemetry-diagnostics-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".zip";
     }
 
-    /** Write the zip to the Downloads folder, for the tray menu. */
+    /** Downloads\Terraforming Mars Telemetry, so the zips don't get lost among other downloads. */
+    static Path folder() {
+        return Path.of(System.getProperty("user.home"), "Downloads", "Terraforming Mars Telemetry");
+    }
+
     static Path saveToDownloads() throws IOException {
-        Path downloads = Path.of(System.getProperty("user.home"), "Downloads");
-        Files.createDirectories(downloads);
-        Path file = downloads.resolve(fileName());
+        Path dir = folder();
+        Files.createDirectories(dir);
+        Path file = dir.resolve(fileName());
         try (OutputStream out = Files.newOutputStream(file)) {
             write(out);
         }

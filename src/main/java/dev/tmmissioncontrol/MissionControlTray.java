@@ -15,7 +15,6 @@ import java.awt.image.BaseMultiResolutionImage;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -72,13 +71,13 @@ final class MissionControlTray {
         }
     }
 
-    /** Save the diagnostics zip, show it in Explorer to drag into the form, and open the GitHub bug form. */
+    /** Save the diagnostics zip, open the GitHub bug form, and show the window with the zip's Copy button. */
     private static void reportBug() {
+        BugReportWindow.Anchor anchor = BugReportWindow.anchor(null);
         // Off the AWT thread: slicing a large Player.log takes a few seconds.
         Thread worker = new Thread(() -> {
             try {
-                Path zip = BugReport.saveToDownloads();
-                new ProcessBuilder("explorer.exe", "/select," + zip).start();
+                BugReportWindow.show(BugReport.saveToDownloads(), anchor);
             } catch (Exception ignored) {
             }
             browse(URI.create(BugReport.issueUrl()));
@@ -114,6 +113,25 @@ final class MissionControlTray {
             return new BaseMultiResolutionImage(variants.toArray(new Image[0]));
         }
         return loadAppIcon();
+    }
+
+    /** Icons for an app window's title bar and taskbar button: the small tray art plus the full app icon. */
+    static List<Image> appIcons() {
+        List<Image> icons = new ArrayList<>();
+        for (int size : TRAY_SIZES) {
+            try (InputStream in = MissionControlTray.class.getResourceAsStream("/tray/tray-" + size + ".png")) {
+                BufferedImage img = in == null ? null : ImageIO.read(in);
+                if (img != null) {
+                    icons.add(img);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        Image large = loadAppIcon();
+        if (large != null) {
+            icons.add(large);
+        }
+        return icons;
     }
 
     private static Image loadAppIcon() {
