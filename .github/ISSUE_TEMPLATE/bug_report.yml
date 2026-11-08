@@ -3,46 +3,22 @@ description: Something on the dashboard is wrong, missing, or broken.
 labels: [bug]
 assignees: [Villunus]
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for reporting this. If you opened this form from **Report a bug** in the app, a
-        `telemetry-diagnostics-….zip` file has been saved to your Downloads folder. Please drag it into the
-        **Diagnostics** box below. It lets us replay your game and see exactly what went wrong.
-
-        The zip holds the current game's part of the game log and the dashboard state. Player names and your
-        Windows user folder are replaced before it's saved. Your own hand is in it, so wait until the game is
-        over if that matters to you.
   - type: textarea
     id: what-happened
     attributes:
-      label: What happened?
-      description: What did the dashboard show, and where (which player's board, scoreboard, chart…)?
-    validations:
-      required: true
-  - type: textarea
-    id: expected
-    attributes:
-      label: What did you expect?
-      description: What the game itself showed, or what you think should have happened.
+      label: What went wrong?
+      description: |
+        A sentence is fine. If you came from **Report a bug** in the app, drag the `telemetry-diagnostics` zip
+        from your Downloads folder into this box. Player names are removed from it, but your own hand is included.
     validations:
       required: true
   - type: input
     id: version
     attributes:
       label: App version
-      description: Filled in for you when you use Report a bug in the app.
-      placeholder: "e.g. 1.4.2"
-    validations:
-      required: true
+      description: Filled in by the app.
   - type: input
     id: game
     attributes:
       label: Game
-      description: Board, generation, number of players, expansions. Filled in for you when you use Report a bug.
-      placeholder: "e.g. Tharsis, gen 7, 3 players (2 AI), Prelude + Venus"
-  - type: textarea
-    id: diagnostics
-    attributes:
-      label: Diagnostics
-      description: Drag the telemetry-diagnostics zip from your Downloads folder here. Screenshots help too.
+      description: Filled in by the app.
