@@ -106,6 +106,8 @@ public final class MissionControlServer {
         http.createContext("/api/shutdown", this::shutdown);
         http.createContext("/api/firewall/fix", this::fixFirewall);
         http.createContext("/api/games", this::games);
+        http.createContext("/api/bug-report", this::bugReport);
+        http.createContext("/api/diagnostics", this::diagnostics);
         http.createContext("/qr.svg", this::qr);
         http.createContext("/", this::staticFile);
     }
@@ -399,6 +401,34 @@ public final class MissionControlServer {
         exchange.sendResponseHeaders(200, body.length);
         try (OutputStream out = exchange.getResponseBody()) {
             out.write(body);
+        }
+    }
+
+    /** The Report a bug link: a redirect, so the tray and the page share one prefilled GitHub URL. */
+    private void bugReport(HttpExchange exchange) throws IOException {
+        exchange.getResponseHeaders().add("Location", BugReport.issueUrl());
+        exchange.getResponseHeaders().add("Cache-Control", "no-store");
+        exchange.sendResponseHeaders(302, -1);
+        exchange.close();
+    }
+
+    /** The diagnostics zip. Local only: it holds the raw log, your own hand included. */
+    private void diagnostics(HttpExchange exchange) throws IOException {
+        InetAddress remote = exchange.getRemoteAddress() == null ? null : exchange.getRemoteAddress().getAddress();
+        if (remote == null || !remote.isLoopbackAddress()) {
+            exchange.sendResponseHeaders(403, -1);
+            return;
+        }
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(405, -1);
+            return;
+        }
+        exchange.getResponseHeaders().add("Content-Type", "application/zip");
+        exchange.getResponseHeaders().add("Content-Disposition", "attachment; filename=\"" + BugReport.fileName() + "\"");
+        exchange.getResponseHeaders().add("Cache-Control", "no-store");
+        exchange.sendResponseHeaders(200, 0);
+        try (OutputStream out = exchange.getResponseBody()) {
+            BugReport.write(out);
         }
     }
 

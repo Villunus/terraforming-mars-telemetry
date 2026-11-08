@@ -1002,6 +1002,13 @@ function render(data) {
     lastGameId = data.gameId || "";
     logFilter = null;
     selectedGen = null;
+    // A new game starts with the score folded, even if the last one ended with it open.
+    if (!tourSaved && data.gameId && (data.generation ?? 1) <= 1 && !/endgame/i.test(data.phase || "") && scoreOpen) {
+      scoreOpen = false;
+      cardsOpen = false;
+      chartsOpen = false;
+      saveSections();
+    }
   }
   coloniesOn = !!data.colonies;
   lastStateData = data;
@@ -1032,6 +1039,7 @@ function render(data) {
   const boards = $("boards");
   boards.className = "boards players-" + Math.max(1, Math.min(5, players.length));
   setHtml(boards, players.map((p) => renderPlayer(p, data.generation)).join(""));
+  autoOpenScoreAtEnd(data);
   renderScore(data, players);
   renderSummary(data, players);
   alignBoardSections();
@@ -1070,6 +1078,21 @@ function bindPhoneAccessUi() {
   });
 }
 
+/** On this PC, Report a bug also saves the diagnostics zip to attach; a phone just opens the form. */
+function bindBugReportUi() {
+  const btn = $("bug-btn");
+  if (onThisPc()) btn.title = "Save a diagnostics zip and open the bug report form on GitHub";
+  btn.addEventListener("click", () => {
+    if (!onThisPc()) return;
+    const save = document.createElement("a");
+    save.href = "/api/diagnostics";
+    save.download = "";
+    document.body.append(save);
+    save.click();
+    save.remove();
+  });
+}
+
 function scoreOf(data, p) {
   const byId = (data.score && data.score.byId) || {};
   return byId[p.id] || byId[String(p.id)] || (p.human ? data.score?.you : {}) || {};
@@ -1077,6 +1100,17 @@ function scoreOf(data, p) {
 
 function creditsOf(p, b) {
   return b.mc ?? p.megaCredits ?? 0;
+}
+
+/** Opens the score breakdown once when a game is seen to be over; closing it afterwards sticks. */
+function autoOpenScoreAtEnd(data) {
+  if (tourSaved || !data.gameId || !/endgame/i.test(data.phase || "")) return;
+  if (data.gameId === autoOpenedGameId) return;
+  autoOpenedGameId = data.gameId;
+  if (!scoreOpen) {
+    scoreOpen = true;
+    saveSections();
+  }
 }
 
 function renderScore(data, players) {
@@ -1101,13 +1135,14 @@ function renderScore(data, players) {
   for (const { b } of breakdowns) vpCounts.set(b.total ?? 0, (vpCounts.get(b.total ?? 0) || 0) + 1);
   const isTied = (b) => vpCounts.get(b.total ?? 0) > 1;
   const winnerId = breakdowns[0]?.p.id;
+  const estimate = scoreEstimate(data, players);
   setHtml($("score-line"), breakdowns.map(({ p, b }, i) => {
     const name = displayName(p, "P" + p.id);
     const ahead = p.id === winnerId && topVp > 0;
     const sep = i === 0 ? "" : `<span class="score-vs">—</span>`;
     const credits = creditsOf(p, b);
     const mc = isTied(b) ? `<span class="sym cost-sym" title="${credits} M€ — most M€ wins a VP tie">${credits}</span>` : "";
-    return `${sep}<span class="score-chip color-${teamColor(p)}${ahead ? " ahead" : ""}"><span class="name">${name}</span> <strong>${b.total ?? 0}</strong>${mc}</span>`;
+    return `${sep}<span class="score-chip color-${teamColor(p)}${ahead ? " ahead" : ""}"><span class="name">${name}</span> <strong>${vpText(b.total ?? 0, estimate)}</strong>${mc}</span>`;
   }).join("") + `<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6 1.4 1.4-6 6-6-6z"/></svg></span>`);
 
   setHtml($("score-head"), `<tr><th></th>${breakdowns.map(({ p }) =>
@@ -1121,7 +1156,7 @@ function renderScore(data, players) {
     ["Milestones", (b) => b.milestones, false],
     ["Awards", (b) => b.awards, false],
     ["Greeneries", (b) => b.greeneries, false],
-    ["Cities", (b) => b.cities, false],
+    ["Cities", (b) => vpText(b.cities ?? 0, estimate?.cities), false],
     ["Cards + tokens", (b) => b.cards, true],
   ];
   setHtml($("score-lines"), rows.map(([n, pick, drill]) =>
@@ -1169,6 +1204,26 @@ function bestVpCard(b) {
 }
 
 /**
+ * A finished game's score worked out from the log rather than the game's own record. The total is then marked
+ * "~", and in solo so are cities: the neutral greeneries solo setup places never appear in the log.
+ */
+function scoreEstimate(data, players) {
+  if (!/endgame/i.test(data.phase || "") || data.official || !players.length) return null;
+  const solo = players.length === 1;
+  return {
+    cities: solo,
+    note: solo
+      ? "~ Estimated from the game's log. Solo setup places neutral greeneries the log never records, so a city next to one is missing a point here. Leave the game and save it to History to see the game's own score."
+      : "~ Estimated from the game's log. The game doesn't save final scores for multiplayer games, so its own scoreboard can differ by a point or two.",
+  };
+}
+
+/** A VP figure, marked "~" when it's an estimate. */
+function vpText(n, approx) {
+  return approx ? `<span class="approx" title="Estimated — see the note below">~${n}</span>` : String(n);
+}
+
+/**
  * Shown from the moment Mars is terraformed (it keeps updating while play goes on) and once the game is over:
  * who won (or whether you beat Mars solo), scores and highlights.
  */
@@ -1179,9 +1234,11 @@ function renderSummary(data, players) {
   const terraformed = !!g && SOLO_GOALS.every((x) => (g[x.key] ?? 0) >= x.max);
   if ((!ended && !terraformed) || !players.length || !data.score) {
     box.hidden = true;
+    $("scoreboard").className = "scoreboard";
     return;
   }
   box.hidden = false;
+  const estimate = scoreEstimate(data, players);
   const ranked = players
     .map((p) => ({ p, b: scoreOf(data, p) }))
     .sort((a, c) => (c.b.total ?? 0) - (a.b.total ?? 0)
@@ -1220,8 +1277,8 @@ function renderSummary(data, players) {
       won = official ? !!official.winner : misses.length === 0;
       headline = won ? "You terraformed Mars — you win!" : "Mars wasn't terraformed in time";
       subline = won
-        ? `Final score ${total} VP`
-        : `Short on ${misses.map((x) => x.label.toLowerCase()).join(", ")} · final score ${total} VP`;
+        ? `Final score ${vpText(total, estimate)} VP`
+        : `Short on ${misses.map((x) => x.label.toLowerCase()).join(", ")} · final score ${vpText(total, estimate)} VP`;
       goals = `<div class="sum-goals">${SOLO_GOALS.map((x) => {
         const v = g[x.key] ?? 0;
         const done = v >= x.max;
@@ -1230,10 +1287,10 @@ function renderSummary(data, players) {
     } else if (official) {
       won = !!official.winner;
       headline = won ? "You terraformed Mars — you win!" : "Mars wasn't terraformed in time";
-      subline = `Final score ${total} VP`;
+      subline = `Final score ${vpText(total, estimate)} VP`;
     } else {
       headline = "Game over";
-      subline = `Final score ${total} VP`;
+      subline = `Final score ${vpText(total, estimate)} VP`;
     }
   } else {
     const [first, second] = ranked;
@@ -1260,7 +1317,8 @@ function renderSummary(data, players) {
   const parts = [["TR", "tr"], ["Cards", "cards"], ["Greeneries", "greeneries"], ["Cities", "cities"],
     ["Milestones", "milestones"], ["Awards", "awards"]];
   const rows = ranked.map(({ p, b }, i) => {
-    const split = parts.filter(([, k]) => b[k]).map(([n, k]) => `${n} ${b[k]}`).join(" · ");
+    const split = parts.filter(([, k]) => b[k])
+      .map(([n, k]) => `${n} ${vpText(b[k], k === "cities" && estimate?.cities)}`).join(" · ");
     const best = bestVpCard(b);
     const facts = [
       `${cardsPlayed.get(p.id) || 0} cards played`,
@@ -1272,29 +1330,27 @@ function renderSummary(data, players) {
         <span class="sum-who"><span><span class="name">${nameOf(p)}</span>${p.human && !solo ? ` <span class="games-you">you</span>` : ""}</span>
           <span class="sum-split">${split}</span>
           <span class="sum-facts">${facts}</span></span>
-        <strong class="sum-vp">${b.total ?? 0}<small> VP</small></strong>
+        <strong class="sum-vp">${vpText(b.total ?? 0, estimate)}<small> VP</small></strong>
       </li>`;
   }).join("");
 
   const meta = [ended ? `Game over after ${data.generation ?? "?"} generations` : `Generation ${data.generation ?? "?"}`,
     data.board].filter(Boolean).join(" · ");
-  box.className = "summary" + (won === true ? " won" : won === false ? " lost" : "");
-  // Where the numbers come from: the game's own record for a solo game once it's saved to History,
-  // otherwise our count from the log, which can miss a point or two.
-  const source = !ended
-    ? "Scores so far, worked out from the game's log. They update as you play."
-    : solo
-    ? (data.official
-      ? "Final score from the game's own History record."
-      : "Worked out from the game's log. In solo games, the neutral greeneries placed at setup can add city points that the log doesn't show. The game's own score appears here once you leave the game and save it to History.")
-    : "Worked out from the game's log. The game doesn't save final scores for multiplayer games, so its own scoreboard can differ by a point or two.";
+  $("scoreboard").className = "scoreboard" + (won === true ? " won" : won === false ? " lost" : "");
+  // Where the numbers come from, under the scores they explain: the game's own record for a solo game once
+  // it's saved to History, otherwise our count from the log, which can miss a point or two.
+  const source = estimate
+    ? `<p class="sum-foot">${escapeHtml(estimate.note)}</p>`
+    : ended && data.official
+    ? `<p class="sum-foot official">Final score from the game's own History record.</p>`
+    : "";
   setHtml(box, `
-    <p class="sum-note${data.official ? " official" : ""}">${escapeHtml(source)}</p>
     <p class="sum-kicker">${escapeHtml(meta)}</p>
     <h2 class="sum-headline">${headline}</h2>
     ${subline ? `<p class="sum-sub">${subline}</p>` : ""}
     ${goals}
-    <ol class="sum-rows">${rows}</ol>`);
+    <ol class="sum-rows">${rows}</ol>
+    ${source}`);
 }
 
 /** "+3 Birds" from the score breakdown, with the card name hoverable. */
@@ -1656,6 +1712,7 @@ function saveSections() {
 const savedSections = loadSections();
 let chartMetricId = loadChartMetric();
 let scoreOpen = savedSections.scoreOpen === true;
+let autoOpenedGameId = "";
 let cardsOpen = savedSections.cardsOpen === true;
 let chartsOpen = savedSections.chartsOpen === true;
 let selectedGen = null;
@@ -2121,7 +2178,7 @@ const TOUR_STEPS = [
   { sel: "header.top", title: "Welcome",
     text: "Telemetry reads the game's own log on this PC and updates as you play. This tour uses a finished sample game to show each part of the dashboard; your own game comes back when it ends." },
   { sel: "#summary", title: "Game over",
-    text: "Appears as soon as Mars is terraformed and keeps updating until the game ends. Then it shows who won and by how much, and each player's final score and highlights. In a solo game, whether you terraformed Mars in time, with any parameter that fell short in red." },
+    text: "Appears at the top of the score panel as soon as Mars is terraformed and keeps updating until the game ends. Then it shows who won and by how much, and each player's final score and highlights. In a solo game, whether you terraformed Mars in time, with any parameter that fell short in red." },
   { sel: "#banner", title: "Card in flight",
     text: "The card being played right now: its cost, tags and what it gives, the tile it places, and reminders for placing it. Tap it to open the game log." },
   { sel: () => [$("game-log").querySelector(".log-filters"), $("game-log").querySelector(".log-gen"),
@@ -2414,6 +2471,7 @@ bindBannerUi();
 bindCorpUi();
 bindTipUi();
 bindPhoneAccessUi();
+bindBugReportUi();
 bindGamesUi();
 bindWakeUi();
 bindTourUi();

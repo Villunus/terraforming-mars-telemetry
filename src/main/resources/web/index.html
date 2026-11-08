@@ -26,6 +26,8 @@
         <button type="button" class="games-btn" id="tour-btn" title="A quick walk through each part of the dashboard">Tour</button>
         <button type="button" class="games-btn" id="awake-btn" aria-pressed="false" hidden
           title="Stop this screen dimming or locking while the page is open">Keep screen on</button>
+        <a class="games-btn" id="bug-btn" href="/api/bug-report" target="_blank" rel="noopener"
+          title="Open the bug report form on GitHub">Report a bug</a>
       </div>
       <p class="update" id="update" hidden></p>
     </div>
@@ -51,29 +53,8 @@
     <button type="button" class="viewing-back" id="viewing-back">Back to live</button>
   </section>
 
-  <section class="summary" id="summary" hidden></section>
-
-  <section class="banner" id="banner">
-    <button type="button" class="banner-summary" id="banner-toggle" aria-expanded="false" disabled>
-      <div class="banner-summary-text">
-        <p class="banner-kicker" id="banner-kicker">No card in flight</p>
-        <p class="banner-line" id="banner-line"></p>
-        <p class="banner-benefit" id="banner-benefit" hidden></p>
-      </div>
-      <div class="banner-summary-end">
-        <span class="live alert" id="banner-placing" hidden></span>
-        <span class="chev" id="banner-chevron" hidden aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6 1.4 1.4-6 6-6-6z"/></svg>
-        </span>
-      </div>
-    </button>
-    <ul class="tips" id="banner-tips" hidden></ul>
-    <div class="banner-details" id="banner-details" hidden>
-      <div class="game-log" id="game-log" hidden></div>
-    </div>
-  </section>
-
   <section class="scoreboard" id="scoreboard" hidden>
+    <div class="summary" id="summary" hidden></div>
     <button type="button" class="score-summary" id="score-toggle" aria-expanded="false">
       <span class="score-kicker" id="score-kicker">If the game ended now</span>
       <span class="score-line" id="score-line"></span>
@@ -92,6 +73,26 @@
         </button>
         <div class="score-charts" id="score-charts" hidden></div>
       </div>
+    </div>
+  </section>
+
+  <section class="banner" id="banner">
+    <button type="button" class="banner-summary" id="banner-toggle" aria-expanded="false" disabled>
+      <div class="banner-summary-text">
+        <p class="banner-kicker" id="banner-kicker">No card in flight</p>
+        <p class="banner-line" id="banner-line"></p>
+        <p class="banner-benefit" id="banner-benefit" hidden></p>
+      </div>
+      <div class="banner-summary-end">
+        <span class="live alert" id="banner-placing" hidden></span>
+        <span class="chev" id="banner-chevron" hidden aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6 1.4 1.4-6 6-6-6z"/></svg>
+        </span>
+      </div>
+    </button>
+    <ul class="tips" id="banner-tips" hidden></ul>
+    <div class="banner-details" id="banner-details" hidden>
+      <div class="game-log" id="game-log" hidden></div>
     </div>
   </section>
 

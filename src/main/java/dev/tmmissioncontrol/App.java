@@ -51,6 +51,8 @@ public final class App {
 
         // The startup replay of Player.log saves the most recent game too, so it shows up under Past games.
         GameArchive.enabled = true;
+        BugReport.state = state;
+        BugReport.logFile = logFile;
         LogTailer tailer = new LogTailer(logFile, parser);
         Thread thread = new Thread(tailer, "player-log-tailer");
         thread.setDaemon(true);

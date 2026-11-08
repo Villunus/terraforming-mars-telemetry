@@ -64,6 +64,7 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 }
 .games-btn:hover, .games-btn[aria-expanded="true"], .games-btn[aria-pressed="true"] { color: var(--ink); border-color: var(--accent); }
 .games-btn[hidden] { display: none; }
+a.games-btn { display: inline-block; text-decoration: none; }
 .games-panel { margin: 12px 0 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
 .games-panel[hidden], .viewing-bar[hidden] { display: none !important; }
 .games-list { margin: 0; padding: 0; list-style: none; }
@@ -148,20 +149,20 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 .phone-fix:hover { background: #4a360e; }
 .phone-fix:disabled { opacity: 0.7; cursor: wait; }
 
+/* The verdict sits at the top of the score panel once Mars is terraformed or the game is over. */
 .summary {
-  margin: 16px 0 0;
   padding: 14px 16px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border-bottom: 1px solid var(--line);
 }
-.summary.won { background: #1d2a18; border-color: #4d7a3c; }
-.summary.lost { background: #3a1c12; border-color: #8a4a2a; }
-.sum-note { margin: 0 0 10px; padding: 6px 10px; border-left: 3px solid var(--accent); background: rgba(0, 0, 0, 0.18); color: var(--muted); font-size: 0.82rem; line-height: 1.4; }
-.sum-note.official { border-left-color: #4d7a3c; }
+.scoreboard.won { background: #1d2a18; border-color: #4d7a3c; }
+.scoreboard.lost { background: #3a1c12; border-color: #8a4a2a; }
+/* Explains every "~" figure; sits right under the scores it qualifies. */
+.sum-foot { margin: 12px 0 0; padding: 8px 12px; border: 1px solid #c9a227; border-radius: 8px; background: rgba(201, 162, 39, 0.12); color: #f0d98a; font-size: 0.88rem; line-height: 1.45; }
+.sum-foot.official { border-color: #4d7a3c; background: rgba(77, 122, 60, 0.15); color: #b9e0a5; }
+.approx { color: #f0d98a; cursor: help; }
 .sum-kicker { margin: 0; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
 .sum-headline { margin: 4px 0 0; font-size: 1.6rem; font-weight: 700; }
-.summary.won .sum-headline { color: #d7f0c8; }
+.scoreboard.won .sum-headline { color: #d7f0c8; }
 .sum-sub { margin: 2px 0 0; color: var(--muted); }
 .sum-goals { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
 /* Unfinished parameters stand out in bright red; finished ones stay quiet green. */
@@ -465,7 +466,7 @@ h1.brand { margin: 0; display: flex; align-items: center; gap: 12px; font-weight
 .res-vp .res-box { background: #e8c84a; border-radius: 50%; }
 
 .scoreboard {
-  margin: 0 0 16px;
+  margin: 16px 0 0;
   padding: 0;
   background: var(--panel);
   border: 1px solid var(--line);

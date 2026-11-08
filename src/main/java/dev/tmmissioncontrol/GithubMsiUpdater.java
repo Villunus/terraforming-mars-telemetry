@@ -350,6 +350,10 @@ public final class GithubMsiUpdater {
         return tag;
     }
 
+    static String currentVersion() {
+        return readCurrentVersion();
+    }
+
     private static String readCurrentVersion() {
         try {
             String version = GithubMsiUpdater.class.getPackage().getImplementationVersion();

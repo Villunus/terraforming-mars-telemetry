@@ -15,6 +15,7 @@ import java.awt.image.BaseMultiResolutionImage;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,9 +37,12 @@ final class MissionControlTray {
         PopupMenu menu = new PopupMenu();
         MenuItem open = new MenuItem("Open");
         open.addActionListener(e -> browse(openUri));
+        MenuItem bug = new MenuItem("Report a bug");
+        bug.addActionListener(e -> reportBug());
         MenuItem quit = new MenuItem("Quit");
         quit.addActionListener(e -> quit());
         menu.add(open);
+        menu.add(bug);
         menu.add(quit);
 
         TrayIcon trayIcon = new TrayIcon(image, "Terraforming Mars Telemetry", menu);
@@ -66,6 +70,21 @@ final class MissionControlTray {
             Desktop.getDesktop().browse(uri);
         } catch (Exception ignored) {
         }
+    }
+
+    /** Save the diagnostics zip, show it in Explorer to drag into the form, and open the GitHub bug form. */
+    private static void reportBug() {
+        // Off the AWT thread: slicing a large Player.log takes a few seconds.
+        Thread worker = new Thread(() -> {
+            try {
+                Path zip = BugReport.saveToDownloads();
+                new ProcessBuilder("explorer.exe", "/select," + zip).start();
+            } catch (Exception ignored) {
+            }
+            browse(URI.create(BugReport.issueUrl()));
+        }, "bug-report");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private static void quit() {
