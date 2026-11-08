@@ -1022,12 +1022,13 @@ function render(data) {
   }
   coloniesOn = !!data.colonies;
   lastStateData = data;
-  const g = data.globals || {};
+  // Games saved before the app tracked the global parameters have none; show nothing rather than start values.
+  const g = data.globals;
   setHtml($("meta"), data.gameId
-    ? [`Gen ${data.generation ?? "?"}`, data.phase, data.board].filter(Boolean).map(escapeHtml).concat(
+    ? [`Gen ${data.generation ?? "?"}`, data.phase, data.board].filter(Boolean).map(escapeHtml).concat(g ? [
       metaParam("o2", "Oxygen", `${g.oxygen ?? 0}%`),
       metaParam("temp", "Temperature", `${g.temperature ?? -30} °C`),
-      metaParam("ocean", "Oceans", `${g.oceans ?? 0}/9`)).join(" · ")
+      metaParam("ocean", "Oceans", `${g.oceans ?? 0}/9`)] : []).join(" · ")
     : "No game yet");
   const update = $("update");
   if (data.updateAvailable) {

@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/overview.png" alt="Dashboard after a finished game: the game-over summary, milestones, awards and each player's resources and production" width="900">
+  <img src="docs/screenshots/overview.png" alt="Dashboard after a finished game: the game status with oxygen, temperature and oceans, the game-over summary and the score breakdown" width="900">
 </p>
 
 While you play, Terraforming Mars Telemetry reads the game's local log and turns it into a live dashboard of
@@ -34,7 +34,7 @@ greeneries, cities and card points. Open the charts to see how the score, produc
 each generation. Tap a generation to see what changed.
 
 <p align="center">
-  <img src="docs/screenshots/scoreboard.png" alt="Score breakdown table and a VP-per-generation chart for two players" width="900">
+  <img src="docs/screenshots/scoreboard.png" alt="The game-over summary, score breakdown table and a VP-per-generation chart for two players" width="900">
 </p>
 
 ## Every player's board in one place
