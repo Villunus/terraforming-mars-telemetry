@@ -757,6 +757,15 @@ function paymentTips(play) {
   return parts.length ? [`This payment uses ${parts.join(" and ")}.`] : [];
 }
 
+/**
+ * "Automated (green)" as the word alone, in the card's colour. Other labels (Action, Conversion…) stay as they
+ * are. Parsed from the label, so saved games, which store it this way, show the same.
+ */
+function cardTypeHtml(label) {
+  const m = String(label).match(/^(\w+) \((green|blue|red)\)$/);
+  return m ? `<span class="card-type ${m[2]}">${escapeHtml(m[1])}</span>` : escapeHtml(label);
+}
+
 function renderBanner(data) {
   const play = data.activePlay;
   const banner = $("banner");
@@ -778,8 +787,9 @@ function renderBanner(data) {
     const playColor = play.playerColor || (play.yours ? teamColor(data.you) : teamColor((data.opponents || [])[0]));
     banner.classList.add("color-" + (playColor || "blue"));
     if (play.yours) banner.classList.add("yours");
-    const who = (play.yours && accountName(data.you)) || play.playerLabel;
-    $("banner-kicker").textContent = `${who}${play.colorLabel ? " · " + play.colorLabel : ""}`;
+    const who = play.yours ? "You" : play.playerLabel;
+    setHtml($("banner-kicker"), `Now playing · <span class="kicker-who">${escapeHtml(who)}</span>${
+      play.colorLabel ? " · " + cardTypeHtml(play.colorLabel) : ""}`);
     setHtml($("banner-line"), `<span class="banner-name">${escapeHtml(play.cardName)}</span>${
       play.cost != null ? costSym(play.cost) : ""
     }${(play.tags || []).map(tagIcon).join("")}${renderDrawn(play)}`);
@@ -787,7 +797,7 @@ function renderBanner(data) {
     warnings = awardSpendWarnings(data, play);
     tips = [...paymentTips(play), ...(play.remember || [])];
   } else {
-    $("banner-kicker").textContent = "No card in flight";
+    setHtml($("banner-kicker"), "Nothing being played");
     setHtml($("banner-line"), log.length
       ? `<span class="banner-log-summary">Game log · ${log.length} move${log.length === 1 ? "" : "s"}</span>`
       : "");
@@ -1012,10 +1022,13 @@ function render(data) {
   }
   coloniesOn = !!data.colonies;
   lastStateData = data;
-  const started = startedLabel(data.startedAt);
-  $("meta").textContent = data.gameId
-    ? [`Gen ${data.generation ?? "?"}`, data.phase, data.board, started && `Started ${started}`].filter(Boolean).join(" · ")
-    : "No game yet";
+  const g = data.globals || {};
+  setHtml($("meta"), data.gameId
+    ? [`Gen ${data.generation ?? "?"}`, data.phase, data.board].filter(Boolean).map(escapeHtml).concat(
+      metaParam("o2", "Oxygen", `${g.oxygen ?? 0}%`),
+      metaParam("temp", "Temperature", `${g.temperature ?? -30} °C`),
+      metaParam("ocean", "Oceans", `${g.oceans ?? 0}/9`)).join(" · ")
+    : "No game yet");
   const update = $("update");
   if (data.updateAvailable) {
     update.hidden = false;
@@ -1045,6 +1058,15 @@ function render(data) {
   alignBoardSections();
   applyOpenTip();
   placeTour();
+}
+
+/**
+ * A global parameter in the status line: its game icon, then the value. Fixed gradient ids, unlike resIcon, so
+ * the line's HTML only changes when a value does.
+ */
+function metaParam(key, label, value) {
+  const svg = (RES_ICONS[key] || "").replace(/@ID@/g, `meta-grad-${key}`);
+  return `<span class="res-sym res-${key} meta-param" title="${label} ${escapeHtml(value)}"><span class="res-box">${svg}</span>${escapeHtml(value)}</span>`;
 }
 
 /** Only this PC can raise the Windows admin prompt; a phone that got here doesn't need the button. */
@@ -2023,15 +2045,6 @@ function fitWordmark() {
 /** A saved game being shown instead of the live one; live polling pauses while it's set. */
 let viewingGame = null;
 let liveGameId = "";
-
-/** "9:38 PM" for a game started today, "Sep 27, 9:38 PM" otherwise; "" when unknown. */
-function startedLabel(iso) {
-  const d = iso ? new Date(iso) : null;
-  if (!d || Number.isNaN(d.getTime())) return "";
-  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-  if (d.toDateString() === new Date().toDateString()) return time;
-  return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}, ${time}`;
-}
 
 function formatPlayedAt(iso) {
   const d = new Date(iso);
