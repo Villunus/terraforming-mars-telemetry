@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/overview.png" alt="Dashboard after a finished game: the game status with oxygen, temperature and oceans, the game-over summary and the score breakdown" width="900">
+  <img src="docs/screenshots/overview.png" alt="Dashboard during a game: the generation with oxygen, temperature and oceans, the score if the game ended now, the card being played, milestones and awards, and each player's resources, production and tags" width="900">
 </p>
 
 While you play, Terraforming Mars Telemetry reads the game's local log and turns it into a live dashboard of
