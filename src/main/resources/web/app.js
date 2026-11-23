@@ -1225,17 +1225,15 @@ function bestVpCard(b) {
 }
 
 /**
- * A finished game's score worked out from the log rather than the game's own record. The total is then marked
- * "~", and in solo so are cities: the neutral greeneries solo setup places never appear in the log.
+ * A finished solo game's score worked out from the log rather than the game's own record. The total and cities
+ * are then marked "~": the neutral greeneries solo setup places never appear in the log. A multiplayer log
+ * records every tile and card, so its score isn't marked.
  */
 function scoreEstimate(data, players) {
-  if (!/endgame/i.test(data.phase || "") || data.official || !players.length) return null;
-  const solo = players.length === 1;
+  if (!/endgame/i.test(data.phase || "") || data.official || players.length !== 1) return null;
   return {
-    cities: solo,
-    note: solo
-      ? "~ Estimated from the game's log. Solo setup places neutral greeneries the log never records, so a city next to one is missing a point here. Leave the game and save it to History to see the game's own score."
-      : "~ Estimated from the game's log. The game doesn't save final scores for multiplayer games, so its own scoreboard can differ by a point or two.",
+    cities: true,
+    note: "~ Estimated from the game's log. Solo setup places neutral greeneries the log never records, so a city next to one is missing a point here. Leave the game and save it to History to see the game's own score.",
   };
 }
 
