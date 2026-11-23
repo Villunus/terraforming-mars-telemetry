@@ -1529,7 +1529,9 @@ public final class LogParser {
      * that follows comes after "Player 2 Play for player 2". Remember each such loss so it lands on the target.
      */
     private void noteTargetedLosses(ActionEvent e) {
-        for (ActionEvent.Sub sub : e.subs) {
+        List<ActionEvent.Sub> candidates = new ArrayList<>(e.subs);
+        candidates.add(e.top);
+        for (ActionEvent.Sub sub : candidates) {
             if (sub.targetPlayerId <= 0 || sub.targetPlayerId == sub.playerId || sub.quantity >= 0
                     || resourceKind(sub.resourceType) == null) {
                 continue;
@@ -1676,9 +1678,16 @@ public final class LogParser {
         final List<Integer> chosenCards = new ArrayList<>();
         private List<Integer> listing;
         final List<Sub> subs = new ArrayList<>();
+        /**
+         * The event's own target and resource. A steal played on its own (Small Animals taking plant
+         * production) puts TargetPlayerLocalID and ResourceInfo on the event itself, not in a sub-action.
+         */
+        final Sub top;
+        private boolean inResourceInfo;
 
         ActionEvent(int playerId) {
             this.playerId = playerId;
+            this.top = new Sub(1, playerId);
         }
 
         private void addCardNumber(String text) {
@@ -1716,8 +1725,21 @@ public final class LogParser {
                 switch (key) {
                     case "ActionType" -> actionType = intOr(value, -1);
                     case "GameActionID" -> actionId = value;
-                    case "Time" -> time = value;
-                    case "Quantity" -> quantity = intOr(value, -1);
+                    case "Time" -> {
+                        time = value;
+                        top.time = value;
+                    }
+                    case "TargetPlayerLocalID" -> top.targetPlayerId = intOr(value, 0);
+                    case "ResourceInfo" -> inResourceInfo = true;
+                    case "ResourceType" -> top.resourceType = intOr(value, -1);
+                    case "IsProdResource" -> top.production = "True".equals(value);
+                    case "Quantity" -> {
+                        if (inResourceInfo) {
+                            top.quantity = intOr(value, 0);
+                        } else {
+                            quantity = intOr(value, -1);
+                        }
+                    }
                     default -> { }
                 }
                 return;
