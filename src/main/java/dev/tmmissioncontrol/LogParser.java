@@ -465,9 +465,12 @@ public final class LogParser {
             m = BLUE_ACTION.matcher(line);
             if (m.find() && !line.contains("Adding action")) {
                 lastBlueAction = cards.displayName(m.group(2).trim());
-                markActionUsed(m.group(2).trim());
-                logMove(line, currentPlayer, "action", lastBlueAction, "");
-                setActive(currentPlayer, "Using " + m.group(2).trim(), null, false);
+                // A blue card has one owner. The game can hand the turn over before the other seat's
+                // action comes through, so the card's owner is surer than whose turn it is.
+                int owner = markActionUsed(m.group(2).trim());
+                int actor = owner > 0 ? owner : currentPlayer;
+                logMove(line, actor, "action", lastBlueAction, "");
+                setActive(actor, "Using " + m.group(2).trim(), null, false);
             }
             m = CORP_ACTION.matcher(line);
             if (m.find() && !line.contains("Adding action")) {
@@ -1131,16 +1134,17 @@ public final class LogParser {
      * A blue card belongs to one player, so match by name across the table. The log's number in
      * "Playing action (129) Blue Card Action : ..." is an action id, not the card number.
      */
-    private void markActionUsed(String rawName) {
+    private int markActionUsed(String rawName) {
         String want = CardDatabase.normalize(cards.displayName(rawName));
         for (PlayerState player : state.players.values()) {
             for (PlayedCard card : player.blueCards) {
                 if (CardDatabase.normalize(card.name).equals(want)) {
                     card.actionUsedGen = state.generation;
-                    return;
+                    return player.id;
                 }
             }
         }
+        return -1;
     }
 
     private void addCardTokens(int cardNumber, String rawType, int amount) {
