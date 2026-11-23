@@ -46,8 +46,13 @@ public final class PlayerState {
     public int fleetsUsed;
 
     public final Map<String, Integer> tags = new LinkedHashMap<>();
-    /** Cards in this player's hand, in the order they came in; only known for you. */
+    /** Cards in this player's hand, in the order they came in. Another player's shows once the game is over. */
     public final List<PlayedCard> hand = new ArrayList<>();
+    /**
+     * Another player's hand, kept out of the page until the game ends. The log names every card they keep,
+     * just as it does yours. Transient, so it never goes out in a snapshot.
+     */
+    public final transient List<PlayedCard> unseenHand = new ArrayList<>();
     public final List<PlayedCard> blueCards = new ArrayList<>();
     public final List<PlayedCard> greenCards = new ArrayList<>();
     public final List<PlayedCard> events = new ArrayList<>();

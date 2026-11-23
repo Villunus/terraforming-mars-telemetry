@@ -353,6 +353,7 @@ public final class LogParser {
                 targetedLosses.clear();
                 if (state.phase.toLowerCase().contains("endgame")) {
                     state.recordGenerationEnd();
+                    revealHands();
                 }
                 if ("Actions".equals(state.phase)
                         && (corpTaken("Tharsis Republic") || state.generation > 1)) {
@@ -979,13 +980,29 @@ public final class LogParser {
         }
     }
 
-    /** Only your own hand is kept; the log lists it card by card as cards come in. */
+    /**
+     * The log lists each card as it goes into a hand. Yours shows straight away; another player's is held
+     * back until the game ends.
+     */
     private void addToHand(PlayerState player, String rawName) {
         String name = cards.displayName(rawName);
-        if (!player.human || player.hand.stream().anyMatch(c -> c.name.equals(name))) {
+        List<PlayedCard> into = player.human ? player.hand : player.unseenHand;
+        if (into.stream().anyMatch(c -> c.name.equals(name))) {
             return;
         }
-        player.hand.add(cardFor(rawName));
+        into.add(cardFor(rawName));
+    }
+
+    /** The game is over: show what the other players were still holding. */
+    private void revealHands() {
+        for (PlayerState player : state.players.values()) {
+            for (PlayedCard card : player.unseenHand) {
+                if (player.hand.stream().noneMatch(c -> c.name.equals(card.name))) {
+                    player.hand.add(card);
+                }
+            }
+            player.unseenHand.clear();
+        }
     }
 
     /** A card from the catalog as the page shows it: on the table, or still in hand. */
@@ -1032,6 +1049,7 @@ public final class LogParser {
         PlayedCard played = cardFor(rawName);
         played.generation = state.generation;
         player.hand.removeIf(c -> c.name.equals(name));
+        player.unseenHand.removeIf(c -> c.name.equals(name));
         player.addCard(played);
         state.addLog(playerId, "card", name, played.color);
         int vp = ScoreCalculator.cardVp(played, player, citiesInPlay());
@@ -1583,6 +1601,7 @@ public final class LogParser {
         if (e.actionType == SELL_CARDS || e.actionType == DISCARD_FROM_HAND) {
             List<Integer> gone = e.actionType == SELL_CARDS ? e.cards : e.chosenCards;
             state.player(e.playerId).hand.removeIf(c -> gone.contains(c.number));
+            state.player(e.playerId).unseenHand.removeIf(c -> gone.contains(c.number));
             return;
         }
         if (e.actionType == COPY_PRODUCTION) {
